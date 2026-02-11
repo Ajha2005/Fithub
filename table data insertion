@@ -1,0 +1,424 @@
+-- ============================================
+-- FITHUB GYM - SAMPLE DATA INSERTION SCRIPT
+-- ============================================
+-- This script populates the database with realistic sample data
+-- Run this AFTER creating the schema
+-- ============================================
+
+-- ============================================
+-- 1. MEMBERSHIP PLANS (8 plans)
+-- ============================================
+
+INSERT INTO membership_plans (plan_name, duration_months, price, description, facilities_included) VALUES
+('Basic Monthly', 1, 999.00, 'Perfect for beginners', 'Gym access, locker facility'),
+('Standard Monthly', 1, 1499.00, 'Most popular plan', 'Gym access, locker, group sessions'),
+('Premium Monthly', 1, 2499.00, 'All-inclusive experience', 'Gym access, locker, group sessions, steam & sauna'),
+('Basic Quarterly', 3, 2699.00, 'Save 10% with quarterly plan', 'Gym access, locker facility'),
+('Standard Quarterly', 3, 3999.00, 'Best value for regular members', 'Gym access, locker, group sessions'),
+('Premium Quarterly', 3, 6499.00, 'Premium experience', 'Gym access, locker, group sessions, steam & sauna'),
+('Basic Annual', 12, 9999.00, 'Save 17% with annual plan', 'Gym access, locker facility'),
+('Premium Annual', 12, 23999.00, 'Ultimate fitness package', 'All facilities, priority support');
+
+-- ============================================
+-- 2. MEMBERS (100 members)
+-- ============================================
+
+INSERT INTO members (first_name, last_name, email, phone, date_of_birth, gender, address, emergency_contact, emergency_phone, registration_date, status) VALUES
+('Rajesh', 'Kumar', 'rajesh.kumar@email.com', '9876543210', '1990-05-15', 'Male', '123 MG Road, Bangalore', 'Priya Kumar', '9876543211', '2024-01-10', 'active'),
+('Priya', 'Sharma', 'priya.sharma@email.com', '9876543212', '1988-08-22', 'Female', '456 Brigade Road, Bangalore', 'Amit Sharma', '9876543213', '2024-01-15', 'active'),
+('Amit', 'Patel', 'amit.patel@email.com', '9876543214', '1992-03-10', 'Male', '789 Koramangala, Bangalore', 'Neha Patel', '9876543215', '2024-02-01', 'active'),
+('Neha', 'Singh', 'neha.singh@email.com', '9876543216', '1995-11-30', 'Female', '321 Indiranagar, Bangalore', 'Rahul Singh', '9876543217', '2024-02-10', 'active'),
+('Rahul', 'Verma', 'rahul.verma@email.com', '9876543218', '1987-07-18', 'Male', '654 Whitefield, Bangalore', 'Anjali Verma', '9876543219', '2024-02-15', 'active'),
+('Anjali', 'Reddy', 'anjali.reddy@email.com', '9876543220', '1993-09-25', 'Female', '987 HSR Layout, Bangalore', 'Karthik Reddy', '9876543221', '2024-03-01', 'active'),
+('Karthik', 'Iyer', 'karthik.iyer@email.com', '9876543222', '1991-04-12', 'Male', '147 JP Nagar, Bangalore', 'Divya Iyer', '9876543223', '2024-03-10', 'active'),
+('Divya', 'Nair', 'divya.nair@email.com', '9876543224', '1994-12-08', 'Female', '258 Jayanagar, Bangalore', 'Arun Nair', '9876543225', '2024-03-15', 'active'),
+('Arun', 'Menon', 'arun.menon@email.com', '9876543226', '1986-06-20', 'Male', '369 Malleshwaram, Bangalore', 'Lakshmi Menon', '9876543227', '2024-04-01', 'active'),
+('Lakshmi', 'Krishnan', 'lakshmi.k@email.com', '9876543228', '1996-02-14', 'Female', '741 Basavanagudi, Bangalore', 'Suresh Krishnan', '9876543229', '2024-04-10', 'active'),
+('Suresh', 'Pillai', 'suresh.pillai@email.com', '9876543230', '1989-10-05', 'Male', '852 Electronic City, Bangalore', 'Maya Pillai', '9876543231', '2023-08-15', 'active'),
+('Maya', 'Desai', 'maya.desai@email.com', '9876543232', '1997-01-28', 'Female', '963 BTM Layout, Bangalore', 'Vikram Desai', '9876543233', '2023-09-01', 'active'),
+('Vikram', 'Joshi', 'vikram.joshi@email.com', '9876543234', '1985-11-16', 'Male', '159 Sarjapur Road, Bangalore', 'Pooja Joshi', '9876543235', '2023-09-20', 'active'),
+('Pooja', 'Gupta', 'pooja.gupta@email.com', '9876543236', '1998-07-03', 'Female', '357 Marathahalli, Bangalore', 'Nikhil Gupta', '9876543237', '2023-10-05', 'active'),
+('Nikhil', 'Chopra', 'nikhil.chopra@email.com', '9876543238', '1990-09-12', 'Male', '468 Bellandur, Bangalore', 'Ritu Chopra', '9876543239', '2023-10-20', 'active'),
+('Ritu', 'Malhotra', 'ritu.malhotra@email.com', '9876543240', '1992-05-25', 'Female', '579 Yelahanka, Bangalore', 'Sanjay Malhotra', '9876543241', '2023-11-01', 'active'),
+('Sanjay', 'Bhatia', 'sanjay.bhatia@email.com', '9876543242', '1988-12-18', 'Male', '680 Rajajinagar, Bangalore', 'Kavita Bhatia', '9876543243', '2023-11-15', 'active'),
+('Kavita', 'Saxena', 'kavita.saxena@email.com', '9876543244', '1995-08-07', 'Female', '791 Banashankari, Bangalore', 'Rohit Saxena', '9876543245', '2023-12-01', 'active'),
+('Rohit', 'Agarwal', 'rohit.agarwal@email.com', '9876543246', '1987-03-22', 'Male', '802 Cunningham Road, Bangalore', 'Sneha Agarwal', '9876543247', '2023-12-10', 'active'),
+('Sneha', 'Kapoor', 'sneha.kapoor@email.com', '9876543248', '1994-10-30', 'Female', '913 Richmond Road, Bangalore', 'Arjun Kapoor', '9876543249', '2023-12-20', 'active'),
+('Arjun', 'Mehta', 'arjun.mehta@email.com', '9876543250', '1991-06-14', 'Male', '124 Residency Road, Bangalore', 'Ananya Mehta', '9876543251', '2024-05-01', 'active'),
+('Ananya', 'Rao', 'ananya.rao@email.com', '9876543252', '1993-02-19', 'Female', '235 CMH Road, Bangalore', 'Varun Rao', '9876543253', '2024-05-10', 'active'),
+('Varun', 'Hegde', 'varun.hegde@email.com', '9876543254', '1989-08-11', 'Male', '346 Old Airport Road, Bangalore', 'Shweta Hegde', '9876543255', '2024-05-15', 'active'),
+('Shweta', 'Shetty', 'shweta.shetty@email.com', '9876543256', '1996-04-27', 'Female', '457 Vittal Mallya Road, Bangalore', 'Karan Shetty', '9876543257', '2024-06-01', 'active'),
+('Karan', 'Bansal', 'karan.bansal@email.com', '9876543258', '1990-12-09', 'Male', '568 Commercial Street, Bangalore', 'Isha Bansal', '9876543259', '2024-06-10', 'active'),
+('Isha', 'Tandon', 'isha.tandon@email.com', '9876543260', '1994-01-15', 'Female', '679 Frazer Town, Bangalore', 'Sahil Tandon', '9876543261', '2024-06-15', 'active'),
+('Sahil', 'Khanna', 'sahil.khanna@email.com', '9876543262', '1988-07-21', 'Male', '780 Shivajinagar, Bangalore', 'Megha Khanna', '9876543263', '2024-07-01', 'active'),
+('Megha', 'Bhatt', 'megha.bhatt@email.com', '9876543264', '1992-03-17', 'Female', '891 Palace Road, Bangalore', 'Aditya Bhatt', '9876543265', '2024-07-10', 'active'),
+('Aditya', 'Kulkarni', 'aditya.kulkarni@email.com', '9876543266', '1995-09-23', 'Male', '902 Seshadripuram, Bangalore', 'Richa Kulkarni', '9876543267', '2024-07-15', 'active'),
+('Richa', 'Pandey', 'richa.pandey@email.com', '9876543268', '1991-05-29', 'Female', '113 Sadashivanagar, Bangalore', 'Vishal Pandey', '9876543269', '2024-08-01', 'active'),
+('Vishal', 'Srivastava', 'vishal.sri@email.com', '9876543270', '1987-11-04', 'Male', '224 Cox Town, Bangalore', 'Nisha Srivastava', '9876543271', '2024-01-20', 'active'),
+('Nisha', 'Tiwari', 'nisha.tiwari@email.com', '9876543272', '1993-07-10', 'Female', '335 Benson Town, Bangalore', 'Pranav Tiwari', '9876543273', '2024-01-25', 'active'),
+('Pranav', 'Mishra', 'pranav.mishra@email.com', '9876543274', '1990-02-16', 'Male', '446 RT Nagar, Bangalore', 'Simran Mishra', '9876543275', '2024-02-05', 'active'),
+('Simran', 'Arora', 'simran.arora@email.com', '9876543276', '1994-08-22', 'Female', '557 Vidyaranyapura, Bangalore', 'Gaurav Arora', '9876543277', '2024-02-20', 'active'),
+('Gaurav', 'Singhal', 'gaurav.singhal@email.com', '9876543278', '1989-04-28', 'Male', '668 Hebbal, Bangalore', 'Payal Singhal', '9876543279', '2024-03-05', 'active'),
+('Payal', 'Mittal', 'payal.mittal@email.com', '9876543280', '1996-10-03', 'Female', '779 Jalahalli, Bangalore', 'Deepak Mittal', '9876543281', '2024-03-20', 'active'),
+('Deepak', 'Goel', 'deepak.goel@email.com', '9876543282', '1988-06-09', 'Male', '880 Peenya, Bangalore', 'Kavya Goel', '9876543283', '2024-04-05', 'active'),
+('Kavya', 'Shah', 'kavya.shah@email.com', '9876543284', '1992-12-15', 'Female', '991 Yeshwanthpur, Bangalore', 'Rohan Shah', '9876543285', '2024-04-20', 'active'),
+('Rohan', 'Gandhi', 'rohan.gandhi@email.com', '9876543286', '1995-03-21', 'Male', '102 Mathikere, Bangalore', 'Tanvi Gandhi', '9876543287', '2024-05-05', 'active'),
+('Tanvi', 'Jain', 'tanvi.jain@email.com', '9876543288', '1991-09-27', 'Female', '213 Nagarbhavi, Bangalore', 'Abhishek Jain', '9876543289', '2024-05-20', 'active'),
+('Abhishek', 'Dutta', 'abhishek.dutta@email.com', '9876543290', '1987-05-02', 'Male', '324 Kengeri, Bangalore', 'Priyanka Dutta', '9876543291', '2024-06-05', 'active'),
+('Priyanka', 'Choudhary', 'priyanka.c@email.com', '9876543292', '1993-11-08', 'Female', '435 Rajarajeshwari Nagar, Bangalore', 'Manish Choudhary', '9876543293', '2024-06-20', 'active'),
+('Manish', 'Bhardwaj', 'manish.b@email.com', '9876543294', '1990-07-14', 'Male', '546 Uttarahalli, Bangalore', 'Swati Bhardwaj', '9876543295', '2024-07-05', 'active'),
+('Swati', 'Dubey', 'swati.dubey@email.com', '9876543296', '1994-01-20', 'Female', '657 Vijayanagar, Bangalore', 'Akash Dubey', '9876543297', '2024-07-20', 'active'),
+('Akash', 'Tripathi', 'akash.tripathi@email.com', '9876543298', '1989-09-26', 'Male', '768 Chamrajpet, Bangalore', 'Riya Tripathi', '9876543299', '2024-08-05', 'active'),
+('Riya', 'Chauhan', 'riya.chauhan@email.com', '9876543300', '1996-05-01', 'Female', '879 Chickpet, Bangalore', 'Vivek Chauhan', '9876543301', '2024-08-10', 'active'),
+('Vivek', 'Rathore', 'vivek.rathore@email.com', '9876543302', '1992-11-07', 'Male', '980 Ulsoor, Bangalore', 'Sonali Rathore', '9876543303', '2024-08-15', 'active'),
+('Sonali', 'Thakur', 'sonali.thakur@email.com', '9876543304', '1988-03-13', 'Female', '091 Frazer Town, Bangalore', 'Piyush Thakur', '9876543305', '2024-08-20', 'active'),
+('Piyush', 'Raghav', 'piyush.raghav@email.com', '9876543306', '1995-07-19', 'Male', '192 Cleveland Town, Bangalore', 'Nikita Raghav', '9876543307', '2024-08-25', 'active'),
+('Nikita', 'Bajaj', 'nikita.bajaj@email.com', '9876543308', '1991-01-25', 'Female', '293 Pulakeshinagar, Bangalore', 'Harshit Bajaj', '9876543309', '2024-09-01', 'active'),
+('Harshit', 'Yadav', 'harshit.yadav@email.com', '9876543310', '1987-06-30', 'Male', '394 KR Puram, Bangalore', 'Anushka Yadav', '9876543311', '2024-01-12', 'active'),
+('Anushka', 'Rawal', 'anushka.rawal@email.com', '9876543312', '1993-12-05', 'Female', '495 Hoodi, Bangalore', 'Yash Rawal', '9876543313', '2024-01-18', 'active'),
+('Yash', 'Saxena', 'yash.saxena@email.com', '9876543314', '1990-08-11', 'Male', '596 Marathahalli, Bangalore', 'Shreya Saxena', '9876543315', '2024-01-22', 'active'),
+('Shreya', 'Dixit', 'shreya.dixit@email.com', '9876543316', '1994-04-17', 'Female', '697 Varthur, Bangalore', 'Naveen Dixit', '9876543317', '2024-02-08', 'active'),
+('Naveen', 'Kashyap', 'naveen.k@email.com', '9876543318', '1989-10-23', 'Male', '798 Kadugodi, Bangalore', 'Pallavi Kashyap', '9876543319', '2024-02-12', 'active'),
+('Pallavi', 'Chawla', 'pallavi.chawla@email.com', '9876543320', '1996-06-29', 'Female', '899 Brookefield, Bangalore', 'Siddharth Chawla', '9876543321', '2024-02-18', 'active'),
+('Siddharth', 'Bose', 'siddharth.bose@email.com', '9876543322', '1992-02-04', 'Male', '900 AECS Layout, Bangalore', 'Tanya Bose', '9876543323', '2024-02-22', 'active'),
+('Tanya', 'Shukla', 'tanya.shukla@email.com', '9876543324', '1988-08-10', 'Female', '101 Kundalahalli, Bangalore', 'Kshitij Shukla', '9876543325', '2024-03-02', 'active'),
+('Kshitij', 'Pandya', 'kshitij.pandya@email.com', '9876543326', '1995-04-16', 'Male', '202 Tin Factory, Bangalore', 'Ishita Pandya', '9876543327', '2024-03-08', 'active'),
+('Ishita', 'Vyas', 'ishita.vyas@email.com', '9876543328', '1991-10-22', 'Female', '303 Old Madras Road, Bangalore', 'Aakash Vyas', '9876543329', '2024-03-12', 'active'),
+('Rachit', 'Doshi', 'rachit.doshi@email.com', '9876543330', '1987-02-28', 'Male', '404 HBR Layout, Bangalore', 'Mira Doshi', '9876543331', '2023-10-10', 'active'),
+('Mira', 'Kohli', 'mira.kohli@email.com', '9876543332', '1993-09-03', 'Female', '505 Kalyan Nagar, Bangalore', 'Dev Kohli', '9876543333', '2023-10-15', 'active'),
+('Dev', 'Raina', 'dev.raina@email.com', '9876543334', '1990-05-09', 'Male', '606 Nagawara, Bangalore', 'Kiara Raina', '9876543335', '2023-10-22', 'active'),
+('Kiara', 'Vohra', 'kiara.vohra@email.com', '9876543336', '1994-11-15', 'Female', '707 Ramamurthy Nagar, Bangalore', 'Arnav Vohra', '9876543337', '2023-11-05', 'active'),
+('Arnav', 'Dhawan', 'arnav.dhawan@email.com', '9876543338', '1989-07-21', 'Male', '808 Banaswadi, Bangalore', 'Anika Dhawan', '9876543339', '2023-11-12', 'active'),
+('Anika', 'Soni', 'anika.soni@email.com', '9876543340', '1996-03-27', 'Female', '909 New Thippasandra, Bangalore', 'Ayush Soni', '9876543341', '2023-11-18', 'active'),
+('Ayush', 'Sethi', 'ayush.sethi@email.com', '9876543342', '1992-09-02', 'Male', '010 CV Raman Nagar, Bangalore', 'Diya Sethi', '9876543343', '2023-11-25', 'active'),
+('Diya', 'Ahuja', 'diya.ahuja@email.com', '9876543344', '1988-05-08', 'Female', '111 Domlur, Bangalore', 'Eshan Ahuja', '9876543345', '2023-12-02', 'active'),
+('Eshan', 'Bakshi', 'eshan.bakshi@email.com', '9876543346', '1995-11-14', 'Male', '212 Ejipura, Bangalore', 'Freya Bakshi', '9876543347', '2023-12-08', 'active'),
+('Freya', 'Grover', 'freya.grover@email.com', '9876543348', '1991-07-20', 'Female', '313 Koramangala 1st Block, Bangalore', 'Gautam Grover', '9876543349', '2023-12-15', 'active'),
+('Lakhan', 'Rana', 'lakhan.rana@email.com', '9876543350', '1990-03-15', 'Male', '414 Koramangala 4th Block, Bangalore', 'Hina Rana', '9876543351', '2024-04-15', 'active'),
+('Hina', 'Bhalla', 'hina.bhalla@email.com', '9876543352', '1993-09-21', 'Female', '515 Koramangala 5th Block, Bangalore', 'Ishan Bhalla', '9876543353', '2024-04-22', 'active'),
+('Vaibhav', 'Luthra', 'vaibhav.luthra@email.com', '9876543354', '1989-05-27', 'Male', '616 Koramangala 6th Block, Bangalore', 'Jhanvi Luthra', '9876543355', '2024-05-02', 'active'),
+('Jhanvi', 'Oberoi', 'jhanvi.oberoi@email.com', '9876543356', '1994-11-02', 'Female', '717 Koramangala 7th Block, Bangalore', 'Kabir Oberoi', '9876543357', '2024-05-08', 'active'),
+('Kabir', 'Talwar', 'kabir.talwar@email.com', '9876543358', '1990-07-08', 'Male', '818 Koramangala 8th Block, Bangalore', 'Lavanya Talwar', '9876543359', '2024-05-12', 'active'),
+('Lavanya', 'Randhawa', 'lavanya.r@email.com', '9876543360', '1996-01-14', 'Female', '919 Ejipura, Bangalore', 'Madhav Randhawa', '9876543361', '2024-05-18', 'active'),
+('Madhav', 'Solanki', 'madhav.solanki@email.com', '9876543362', '1992-09-20', 'Male', '020 Hosur Road, Bangalore', 'Naina Solanki', '9876543363', '2024-05-22', 'active'),
+('Naina', 'Kakkar', 'naina.kakkar@email.com', '9876543364', '1988-03-26', 'Female', '121 BTM 1st Stage, Bangalore', 'Ojas Kakkar', '9876543365', '2024-06-02', 'active'),
+('Ojas', 'Madan', 'ojas.madan@email.com', '9876543366', '1995-10-01', 'Male', '222 BTM 2nd Stage, Bangalore', 'Pihu Madan', '9876543367', '2024-06-08', 'active'),
+('Pihu', 'Narang', 'pihu.narang@email.com', '9876543368', '1991-06-07', 'Female', '323 Bilekahalli, Bangalore', 'Qasim Narang', '9876543369', '2024-06-12', 'active'),
+('Qasim', 'Pathak', 'qasim.pathak@email.com', '9876543370', '1987-12-13', 'Male', '424 Bommanahalli, Bangalore', 'Roshni Pathak', '9876543371', '2024-06-18', 'active'),
+('Roshni', 'Saini', 'roshni.saini@email.com', '9876543372', '1993-08-19', 'Female', '525 Hongasandra, Bangalore', 'Samar Saini', '9876543373', '2024-06-22', 'active'),
+('Samar', 'Walia', 'samar.walia@email.com', '9876543374', '1990-04-25', 'Male', '626 Begur, Bangalore', 'Tara Walia', '9876543375', '2024-07-02', 'active'),
+('Tara', 'Gill', 'tara.gill@email.com', '9876543376', '1994-10-31', 'Female', '727 Electronic City Phase 1, Bangalore', 'Uday Gill', '9876543377', '2024-07-08', 'active'),
+('Uday', 'Manchanda', 'uday.m@email.com', '9876543378', '1989-07-06', 'Male', '828 Electronic City Phase 2, Bangalore', 'Vanya Manchanda', '9876543379', '2024-07-12', 'active'),
+('Vanya', 'Anand', 'vanya.anand@email.com', '9876543380', '1996-01-12', 'Female', '929 Sarjapur Road, Bangalore', 'Yug Anand', '9876543381', '2024-07-18', 'active'),
+('Yug', 'Bajwa', 'yug.bajwa@email.com', '9876543382', '1992-09-18', 'Male', '030 Carmelram, Bangalore', 'Zara Bajwa', '9876543383', '2024-07-22', 'active'),
+('Zara', 'Chhabra', 'zara.chhabra@email.com', '9876543384', '1988-05-24', 'Female', '131 Haralur Road, Bangalore', 'Aarav Chhabra', '9876543385', '2024-08-02', 'active'),
+('Aarav', 'Dasgupta', 'aarav.d@email.com', '9876543386', '1995-11-29', 'Male', '232 Sonarpur, Bangalore', 'Bhavya Dasgupta', '9876543387', '2024-08-08', 'active'),
+('Bhavya', 'Sathe', 'bhavya.sathe@email.com', '9876543388', '1991-08-05', 'Female', '333 Hosa Road, Bangalore', 'Chirag Sathe', '9876543389', '2024-08-12', 'active'),
+('Chirag', 'Dalal', 'chirag.dalal@email.com', '9876543390', '1987-02-10', 'Male', '434 Attibele, Bangalore', 'Dhara Dalal', '9876543391', '2024-08-18', 'active'),
+('Dhara', 'Kothari', 'dhara.kothari@email.com', '9876543392', '1993-10-16', 'Female', '535 Chandapura, Bangalore', 'Eshaan Kothari', '9876543393', '2024-08-22', 'active'),
+('Eshaan', 'Nagpal', 'eshaan.nagpal@email.com', '9876543394', '1990-06-22', 'Male', '636 Anekal, Bangalore', 'Falak Nagpal', '9876543395', '2024-09-02', 'active'),
+('Falak', 'Bhasin', 'falak.bhasin@email.com', '9876543396', '1994-12-28', 'Female', '737 Jigani, Bangalore', 'Gauransh Bhasin', '9876543397', '2024-09-08', 'active');
+
+-- ============================================
+-- 3. MEMBER SUBSCRIPTIONS
+-- ============================================
+-- Each member gets 1-2 subscriptions
+
+INSERT INTO member_subscriptions (member_id, plan_id, start_date, end_date, amount_paid, payment_method, payment_status, auto_renew)
+SELECT 
+    m.member_id,
+    (CASE 
+        WHEN random() < 0.3 THEN 1  -- 30% Basic Monthly
+        WHEN random() < 0.6 THEN 2  -- 30% Standard Monthly
+        WHEN random() < 0.8 THEN 3  -- 20% Premium Monthly
+        WHEN random() < 0.9 THEN 5  -- 10% Standard Quarterly
+        ELSE 6  -- 10% Premium Quarterly
+    END) AS plan_id,
+    m.registration_date AS start_date,
+    m.registration_date + (
+        CASE 
+            WHEN random() < 0.7 THEN INTERVAL '1 month'
+            WHEN random() < 0.9 THEN INTERVAL '3 months'
+            ELSE INTERVAL '12 months'
+        END
+    ) AS end_date,
+    (SELECT price FROM membership_plans WHERE plan_id = 
+        (CASE 
+            WHEN random() < 0.3 THEN 1
+            WHEN random() < 0.6 THEN 2
+            WHEN random() < 0.8 THEN 3
+            WHEN random() < 0.9 THEN 5
+            ELSE 6
+        END)
+    ) AS amount_paid,
+    (CASE (random() * 4)::INTEGER
+        WHEN 0 THEN 'upi'
+        WHEN 1 THEN 'credit_card'
+        WHEN 2 THEN 'debit_card'
+        ELSE 'cash'
+    END) AS payment_method,
+    'completed' AS payment_status,
+    random() > 0.5 AS auto_renew
+FROM members m;
+
+-- ============================================
+-- 4. EQUIPMENT (20 items)
+-- ============================================
+
+INSERT INTO equipment (equipment_name, category, brand, purchase_date, purchase_price, warranty_expiry, location, status) VALUES
+('Treadmill T-01', 'cardio', 'Life Fitness', '2023-01-15', 150000.00, '2026-01-15', 'Cardio Zone', 'operational'),
+('Treadmill T-02', 'cardio', 'Life Fitness', '2023-01-15', 150000.00, '2026-01-15', 'Cardio Zone', 'operational'),
+('Treadmill T-03', 'cardio', 'Technogym', '2023-03-10', 180000.00, '2026-03-10', 'Cardio Zone', 'operational'),
+('Cross Trainer C-01', 'cardio', 'Precor', '2023-02-01', 120000.00, '2026-02-01', 'Cardio Zone', 'operational'),
+('Cross Trainer C-02', 'cardio', 'Precor', '2023-02-01', 120000.00, '2026-02-01', 'Cardio Zone', 'maintenance'),
+('Rowing Machine R-01', 'cardio', 'Concept2', '2023-04-10', 75000.00, '2026-04-10', 'Cardio Zone', 'operational'),
+('Rowing Machine R-02', 'cardio', 'Concept2', '2023-04-10', 75000.00, '2026-04-10', 'Cardio Zone', 'operational'),
+('Exercise Bike B-01', 'cardio', 'Schwinn', '2023-05-15', 45000.00, '2025-05-15', 'Cardio Zone', 'operational'),
+('Exercise Bike B-02', 'cardio', 'Schwinn', '2023-05-15', 45000.00, '2025-05-15', 'Cardio Zone', 'operational'),
+('Chest Press Machine', 'strength', 'Hammer Strength', '2023-01-20', 200000.00, '2028-01-20', 'Strength Zone', 'operational'),
+('Leg Press Machine', 'strength', 'Hammer Strength', '2023-01-20', 250000.00, '2028-01-20', 'Strength Zone', 'operational'),
+('Lat Pulldown Machine', 'strength', 'Cybex', '2023-02-15', 180000.00, '2028-02-15', 'Strength Zone', 'operational'),
+('Cable Crossover Machine', 'strength', 'Life Fitness', '2023-03-05', 220000.00, '2028-03-05', 'Strength Zone', 'operational'),
+('Smith Machine', 'strength', 'Body-Solid', '2023-02-10', 150000.00, '2027-02-10', 'Free Weight Zone', 'operational'),
+('Power Rack PR-01', 'strength', 'Rogue', '2023-01-10', 180000.00, '2028-01-10', 'Free Weight Zone', 'operational'),
+('Dumbbells Set (5-50kg)', 'free_weights', 'CAP Barbell', '2023-01-05', 120000.00, '2028-01-05', 'Free Weight Zone', 'operational'),
+('Olympic Barbell Set', 'free_weights', 'Rogue', '2023-01-05', 85000.00, '2028-01-05', 'Free Weight Zone', 'operational'),
+('Kettlebell Set', 'free_weights', 'Rogue', '2023-01-08', 55000.00, '2028-01-08', 'Functional Training Area', 'operational'),
+('Battle Ropes', 'functional', 'Stroops', '2023-06-01', 15000.00, '2025-06-01', 'Functional Training Area', 'operational'),
+('Plyo Box Set', 'functional', 'Rogue', '2023-06-01', 25000.00, '2026-06-01', 'Functional Training Area', 'operational');
+
+-- ============================================
+-- 5. EQUIPMENT MAINTENANCE
+-- ============================================
+
+-- Maintenance records for each equipment
+INSERT INTO equipment_maintenance (equipment_id, maintenance_date, maintenance_type, description, cost, performed_by, next_maintenance_date) VALUES
+(1, '2024-01-20', 'routine', 'Belt lubrication and calibration', 2500.00, 'Service Team', '2024-04-20'),
+(1, '2024-04-22', 'routine', 'General inspection and cleaning', 2000.00, 'Service Team', '2024-07-22'),
+(1, '2024-07-25', 'routine', 'Belt tension adjustment', 2500.00, 'Service Team', '2024-10-25'),
+(2, '2024-02-15', 'routine', 'Motor inspection and belt check', 2500.00, 'Service Team', '2024-05-15'),
+(2, '2024-05-18', 'repair', 'Belt replacement', 8500.00, 'Authorized Service', '2024-08-18'),
+(3, '2024-03-10', 'routine', 'Complete servicing', 3000.00, 'Service Team', '2024-06-10'),
+(4, '2024-02-05', 'routine', 'Resistance adjustment', 2000.00, 'Service Team', '2024-05-05'),
+(5, '2024-03-01', 'repair', 'Bearing replacement', 12000.00, 'Authorized Service', '2024-06-01'),
+(5, '2024-08-15', 'routine', 'Post-repair inspection', 1500.00, 'Service Team', '2024-11-15'),
+(6, '2024-04-15', 'routine', 'Chain lubrication', 1500.00, 'Service Team', '2024-07-15'),
+(7, '2024-04-20', 'routine', 'Chain lubrication', 1500.00, 'Service Team', '2024-07-20'),
+(10, '2024-01-25', 'inspection', 'Safety check', 3000.00, 'Service Team', '2024-07-25'),
+(11, '2024-01-28', 'inspection', 'Safety check', 3500.00, 'Service Team', '2024-07-28'),
+(12, '2024-02-20', 'routine', 'Cable inspection', 2500.00, 'Service Team', '2024-08-20'),
+(13, '2024-03-10', 'routine', 'Pulley system check', 2800.00, 'Service Team', '2024-09-10'),
+(14, '2024-02-15', 'routine', 'Bar alignment check', 2000.00, 'Service Team', '2024-08-15'),
+(15, '2024-01-15', 'inspection', 'Structural integrity check', 2500.00, 'Service Team', '2024-07-15'),
+(16, '2024-01-10', 'routine', 'Handle replacement', 5000.00, 'Service Team', '2024-07-10'),
+(17, '2024-01-12', 'inspection', 'Weight plate check', 1500.00, 'Service Team', '2024-07-12'),
+(19, '2024-06-05', 'routine', 'Rope inspection', 1000.00, 'Service Team', '2024-12-05');
+
+-- ============================================
+-- 6. ATTENDANCE RECORDS (Last 60 days)
+-- ============================================
+
+-- Generate attendance for active members over last 60 days
+DO $
+DECLARE
+    member_rec RECORD;
+    attendance_date DATE;
+    days_back INTEGER;
+    check_in TIMESTAMP;
+    check_out TIMESTAMP;
+    visit_probability DECIMAL;
+BEGIN
+    FOR member_rec IN SELECT member_id, registration_date FROM members WHERE status = 'active' LOOP
+        FOR days_back IN 0..60 LOOP
+            attendance_date := CURRENT_DATE - days_back;
+            
+            -- Only create attendance after member registration
+            IF attendance_date >= member_rec.registration_date THEN
+                -- Vary visit probability by member (some more active than others)
+                visit_probability := 0.3 + (random() * 0.3);  -- 30-60% chance
+                
+                IF random() < visit_probability THEN
+                    -- Random check-in time between 6 AM and 8 PM
+                    check_in := attendance_date + (INTERVAL '1 hour' * (6 + random() * 14));
+                    -- Stay for 1-3 hours
+                    check_out := check_in + (INTERVAL '1 hour' * (1 + random() * 2));
+                    
+                    INSERT INTO attendance (member_id, check_in_time, check_out_time, date)
+                    VALUES (member_rec.member_id, check_in, check_out, attendance_date);
+                END IF;
+            END IF;
+        END LOOP;
+    END LOOP;
+END $;
+
+-- ============================================
+-- 7. MEMBER BODY METRICS (For 40 members)
+-- ============================================
+
+-- Initial measurement for members
+INSERT INTO member_body_metrics (member_id, measurement_date, weight_kg, height_cm, body_fat_percentage, muscle_mass_kg)
+SELECT 
+    member_id,
+    registration_date,
+    60 + (random() * 40)::DECIMAL(5,2),  -- Weight 60-100 kg
+    155 + (random() * 30)::DECIMAL(5,2),  -- Height 155-185 cm
+    15 + (random() * 20)::DECIMAL(4,2),   -- Body fat 15-35%
+    40 + (random() * 25)::DECIMAL(5,2)    -- Muscle mass 40-65 kg
+FROM members
+WHERE member_id <= 40;
+
+-- Follow-up measurements (every 15 days)
+DO $
+DECLARE
+    member_rec RECORD;
+    meas_date DATE;
+    current_weight DECIMAL;
+    weight_change DECIMAL;
+BEGIN
+    FOR member_rec IN SELECT member_id, registration_date FROM members WHERE member_id <= 40 LOOP
+        -- Get initial weight
+        SELECT weight_kg INTO current_weight
+        FROM member_body_metrics
+        WHERE member_id = member_rec.member_id
+        ORDER BY measurement_date LIMIT 1;
+        
+        meas_date := member_rec.registration_date + INTERVAL '15 days';
+        
+        WHILE meas_date <= CURRENT_DATE LOOP
+            -- Simulate gradual weight change (±0.5 to 2 kg)
+            weight_change := (random() - 0.6) * 2;
+            current_weight := current_weight + weight_change;
+            
+            INSERT INTO member_body_metrics (member_id, measurement_date, weight_kg, height_cm, body_fat_percentage, muscle_mass_kg)
+            VALUES (
+                member_rec.member_id,
+                meas_date,
+                current_weight,
+                (SELECT height_cm FROM member_body_metrics WHERE member_id = member_rec.member_id ORDER BY measurement_date LIMIT 1),
+                15 + (random() * 20)::DECIMAL(4,2),
+                40 + (random() * 25)::DECIMAL(5,2)
+            );
+            
+            meas_date := meas_date + INTERVAL '15 days';
+        END LOOP;
+    END LOOP;
+END $;
+
+-- ============================================
+-- 8. MEMBER FITNESS GOALS (For 50 members)
+-- ============================================
+
+INSERT INTO member_fitness_goals (member_id, goal_type, target_value, current_value, start_date, target_date, status)
+SELECT 
+    member_id,
+    (CASE (random() * 5)::INTEGER
+        WHEN 0 THEN 'weight_loss'
+        WHEN 1 THEN 'muscle_gain'
+        WHEN 2 THEN 'endurance'
+        WHEN 3 THEN 'flexibility'
+        ELSE 'general_fitness'
+    END) AS goal_type,
+    65.0 AS target_value,  -- Target weight
+    75.0 AS current_value,  -- Current weight
+    registration_date AS start_date,
+    registration_date + INTERVAL '6 months' AS target_date,
+    (CASE 
+        WHEN random() < 0.2 THEN 'achieved'
+        WHEN random() < 0.8 THEN 'in_progress'
+        ELSE 'abandoned'
+    END) AS status
+FROM members
+WHERE member_id <= 50;
+
+-- Additional goals for some members
+INSERT INTO member_fitness_goals (member_id, goal_type, target_value, current_value, start_date, target_date, status)
+SELECT 
+    member_id,
+    'muscle_gain',
+    60.0,
+    55.0,
+    registration_date + INTERVAL '2 months',
+    registration_date + INTERVAL '8 months',
+    'in_progress'
+FROM members
+WHERE member_id BETWEEN 20 AND 35;
+
+-- ============================================
+-- 9. MEMBER ENGAGEMENT SCORES
+-- ============================================
+-- This would typically be calculated by the stored procedure,
+-- but we'll insert some sample data for demonstration
+
+INSERT INTO member_engagement_scores (member_id, calculation_date, attendance_score, goal_progress_score, overall_engagement_score, churn_risk_level)
+SELECT 
+    m.member_id,
+    CURRENT_DATE,
+    LEAST((SELECT COUNT(*) FROM attendance WHERE member_id = m.member_id AND date >= CURRENT_DATE - INTERVAL '30 days') * 5, 100)::DECIMAL(5,2),
+    (CASE 
+        WHEN EXISTS(SELECT 1 FROM member_fitness_goals WHERE member_id = m.member_id AND status = 'achieved') THEN 90
+        WHEN EXISTS(SELECT 1 FROM member_fitness_goals WHERE member_id = m.member_id AND status = 'in_progress') THEN 60
+        ELSE 30
+    END)::DECIMAL(5,2),
+    50 + (random() * 40)::DECIMAL(5,2),
+    (CASE 
+        WHEN random() < 0.6 THEN 'low'
+        WHEN random() < 0.85 THEN 'medium'
+        WHEN random() < 0.95 THEN 'high'
+        ELSE 'critical'
+    END) AS churn_risk_level
+FROM members m
+WHERE status = 'active';
+
+-- ============================================
+-- DATA VALIDATION QUERIES
+-- ============================================
+
+-- Verify data inserted
+SELECT 'Membership Plans' AS table_name, COUNT(*) AS record_count FROM membership_plans
+UNION ALL
+SELECT 'Members', COUNT(*) FROM members
+UNION ALL
+SELECT 'Member Subscriptions', COUNT(*) FROM member_subscriptions
+UNION ALL
+SELECT 'Attendance Records', COUNT(*) FROM attendance
+UNION ALL
+SELECT 'Equipment', COUNT(*) FROM equipment
+UNION ALL
+SELECT 'Equipment Maintenance', COUNT(*) FROM equipment_maintenance
+UNION ALL
+SELECT 'Member Body Metrics', COUNT(*) FROM member_body_metrics
+UNION ALL
+SELECT 'Member Fitness Goals', COUNT(*) FROM member_fitness_goals
+UNION ALL
+SELECT 'Member Engagement Scores', COUNT(*) FROM member_engagement_scores;
+
+-- Show sample data from each table
+SELECT '--- MEMBERSHIP PLANS ---' AS info;
+SELECT * FROM membership_plans LIMIT 5;
+
+SELECT '--- MEMBERS (First 5) ---' AS info;
+SELECT member_id, first_name, last_name, email, registration_date, status FROM members LIMIT 5;
+
+SELECT '--- ATTENDANCE (Recent 10) ---' AS info;
+SELECT a.attendance_id, m.first_name, m.last_name, a.check_in_time, a.check_out_time 
+FROM attendance a 
+JOIN members m ON a.member_id = m.member_id 
+ORDER BY a.check_in_time DESC LIMIT 10;
+
+SELECT '--- EQUIPMENT ---' AS info;
+SELECT equipment_id, equipment_name, category, status, location FROM equipment LIMIT 10;
+
+-- ============================================
+-- SUMMARY STATISTICS
+-- ============================================
+
+SELECT 
+    'Database populated successfully!' AS status,
+    (SELECT COUNT(*) FROM members) AS total_members,
+    (SELECT COUNT(*) FROM attendance) AS total_attendance_records,
+    (SELECT COUNT(*) FROM equipment) AS total_equipment,
+    (SELECT COUNT(*) FROM member_body_metrics) AS total_body_metrics;
+
+-- ============================================
+-- END OF SAMPLE DATA SCRIPT
+-- ============================================
