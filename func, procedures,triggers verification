@@ -1,0 +1,24 @@
+SELECT routine_name, routine_type
+FROM   information_schema.routines
+WHERE  routine_schema = 'public'
+  AND  routine_type   = 'FUNCTION'
+ORDER  BY routine_name;
+
+-- RUN ONE BY ONE 
+
+SELECT routine_name, routine_type
+FROM   information_schema.routines
+WHERE  routine_schema = 'public'
+  AND  routine_type   = 'PROCEDURE'
+ORDER  BY routine_name;
+
+
+
+
+SELECT trigger_name,
+       event_object_table AS table_name,
+       action_timing,
+       event_manipulation
+FROM   information_schema.triggers
+WHERE  trigger_schema = 'public'
+ORDER  BY event_object_table;
