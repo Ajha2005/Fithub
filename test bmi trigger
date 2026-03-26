@@ -1,0 +1,11 @@
+-- Insert body metrics WITHOUT providing BMI
+INSERT INTO member_body_metrics (member_id, measurement_date, weight_kg, height_cm)
+VALUES (1, CURRENT_DATE, 75, 175);
+
+-- Check if BMI was auto-calculated
+SELECT member_id, weight_kg, height_cm, bmi
+FROM   member_body_metrics
+WHERE  member_id = 1
+ORDER  BY measurement_date DESC
+LIMIT  1;
+-- Expected: bmi ~24.49
