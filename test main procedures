@@ -1,0 +1,11 @@
+-- Process expired subscriptions
+CALL process_expired_subscriptions();
+-- Expected: NOTICE messages listing members marked inactive
+
+-- Monthly revenue report
+CALL generate_monthly_revenue_report(2024, 8);
+-- Expected: Formatted revenue breakdown by plan
+
+-- Member activity report (uses explicit cursor)
+CALL generate_member_activity_report();
+-- Expected: One line per active member with visits & goals
