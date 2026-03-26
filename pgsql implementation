@@ -1,0 +1,984 @@
+-- ============================================
+-- FITHUB GYM - COMPLETE PL/pgSQL IMPLEMENTATION
+-- ============================================
+-- Functions, Procedures, Triggers, and Cursors
+-- Run this AFTER schema and sample data
+-- ============================================
+
+-- ============================================
+-- PART 1: FUNCTIONS
+-- ============================================
+
+-- Function 1: Calculate BMI
+CREATE OR REPLACE FUNCTION calculate_bmi(
+    p_weight_kg DECIMAL,
+    p_height_cm DECIMAL
+) RETURNS DECIMAL AS $$
+DECLARE
+    v_bmi DECIMAL;
+BEGIN
+    -- Validate inputs
+    IF p_height_cm IS NULL OR p_height_cm <= 0 THEN
+        RETURN NULL;
+    END IF;
+    
+    IF p_weight_kg IS NULL OR p_weight_kg <= 0 THEN
+        RETURN NULL;
+    END IF;
+    
+    -- Calculate BMI: weight(kg) / (height(m))^2
+    v_bmi := p_weight_kg / POWER(p_height_cm / 100, 2);
+    
+    RETURN ROUND(v_bmi, 2);
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error calculating BMI: %', SQLERRM;
+        RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test: SELECT calculate_bmi(70, 170);
+
+
+-- Function 2: Get Member Engagement Level
+CREATE OR REPLACE FUNCTION get_engagement_level(p_member_id INTEGER)
+RETURNS VARCHAR AS $$
+DECLARE
+    v_score DECIMAL;
+BEGIN
+    -- Get latest engagement score
+    SELECT overall_engagement_score INTO v_score
+    FROM member_engagement_scores
+    WHERE member_id = p_member_id
+    ORDER BY calculation_date DESC
+    LIMIT 1;
+    
+    -- Return engagement level based on score
+    IF v_score IS NULL THEN
+        RETURN 'Unknown';
+    ELSIF v_score >= 80 THEN
+        RETURN 'Excellent';
+    ELSIF v_score >= 60 THEN
+        RETURN 'Good';
+    ELSIF v_score >= 40 THEN
+        RETURN 'Average';
+    ELSIF v_score >= 20 THEN
+        RETURN 'Low';
+    ELSE
+        RETURN 'Critical';
+    END IF;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 'Error';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test: SELECT get_engagement_level(1);
+
+
+-- Function 3: Calculate Days Until Subscription Expiry
+CREATE OR REPLACE FUNCTION get_days_until_expiry(p_member_id INTEGER)
+RETURNS INTEGER AS $$
+DECLARE
+    v_end_date DATE;
+    v_days INTEGER;
+BEGIN
+    -- Get latest subscription end date
+    SELECT MAX(end_date) INTO v_end_date
+    FROM member_subscriptions
+    WHERE member_id = p_member_id;
+    
+    IF v_end_date IS NULL THEN
+        RETURN NULL;
+    END IF;
+    
+    v_days := v_end_date - CURRENT_DATE;
+    RETURN v_days;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test: SELECT get_days_until_expiry(1);
+
+
+-- Function 4: Get Member Status Summary
+CREATE OR REPLACE FUNCTION get_member_status(p_member_id INTEGER)
+RETURNS TABLE (
+    member_name VARCHAR,
+    subscription_status VARCHAR,
+    days_remaining INTEGER,
+    total_visits INTEGER,
+    engagement_level VARCHAR
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        m.first_name || ' ' || m.last_name AS member_name,
+        CASE 
+            WHEN MAX(ms.end_date) >= CURRENT_DATE THEN 'Active'
+            WHEN MAX(ms.end_date) >= CURRENT_DATE - INTERVAL '30 days' THEN 'Recently Expired'
+            ELSE 'Expired'
+        END AS subscription_status,
+        get_days_until_expiry(p_member_id) AS days_remaining,
+        COUNT(DISTINCT a.attendance_id)::INTEGER AS total_visits,
+        get_engagement_level(p_member_id) AS engagement_level
+    FROM members m
+    LEFT JOIN member_subscriptions ms ON m.member_id = ms.member_id
+    LEFT JOIN attendance a ON m.member_id = a.member_id 
+        AND a.date >= CURRENT_DATE - INTERVAL '30 days'
+    WHERE m.member_id = p_member_id
+    GROUP BY m.member_id, m.first_name, m.last_name;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test: SELECT * FROM get_member_status(1);
+
+
+-- Function 5: Calculate Member Attendance Score
+CREATE OR REPLACE FUNCTION calculate_attendance_score(
+    p_member_id INTEGER,
+    p_days INTEGER DEFAULT 30
+) RETURNS DECIMAL AS $$
+DECLARE
+    v_attendance_count INTEGER;
+    v_score DECIMAL;
+BEGIN
+    -- Count attendance in last N days
+    SELECT COUNT(*) INTO v_attendance_count
+    FROM attendance
+    WHERE member_id = p_member_id
+        AND date >= CURRENT_DATE - (p_days || ' days')::INTERVAL;
+    
+    -- Score: 5 points per visit, max 100
+    v_score := LEAST(v_attendance_count * 5, 100);
+    
+    RETURN v_score;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 0;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test: SELECT calculate_attendance_score(1, 30);
+
+
+-- Function 6: Calculate Goal Progress Score
+CREATE OR REPLACE FUNCTION calculate_goal_progress_score(p_member_id INTEGER)
+RETURNS DECIMAL AS $$
+DECLARE
+    v_score DECIMAL;
+BEGIN
+    -- Calculate average goal achievement score
+    SELECT COALESCE(AVG(
+        CASE 
+            WHEN status = 'achieved' THEN 100
+            WHEN status = 'in_progress' THEN 60
+            WHEN status = 'abandoned' THEN 20
+            ELSE 0
+        END
+    ), 50) INTO v_score
+    FROM member_fitness_goals
+    WHERE member_id = p_member_id;
+    
+    RETURN ROUND(v_score, 2);
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 50;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test: SELECT calculate_goal_progress_score(1);
+
+
+-- Function 7: Determine Churn Risk Level
+CREATE OR REPLACE FUNCTION determine_churn_risk(p_engagement_score DECIMAL)
+RETURNS VARCHAR AS $$
+BEGIN
+    IF p_engagement_score IS NULL THEN
+        RETURN 'unknown';
+    ELSIF p_engagement_score >= 70 THEN
+        RETURN 'low';
+    ELSIF p_engagement_score >= 50 THEN
+        RETURN 'medium';
+    ELSIF p_engagement_score >= 30 THEN
+        RETURN 'high';
+    ELSE
+        RETURN 'critical';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test: SELECT determine_churn_risk(45);
+
+
+-- Function 8: Get Equipment Maintenance Status
+CREATE OR REPLACE FUNCTION get_equipment_status(p_equipment_id INTEGER)
+RETURNS VARCHAR AS $$
+DECLARE
+    v_next_maintenance DATE;
+BEGIN
+    -- Get next maintenance date
+    SELECT next_maintenance_date INTO v_next_maintenance
+    FROM equipment_maintenance
+    WHERE equipment_id = p_equipment_id
+    ORDER BY maintenance_date DESC
+    LIMIT 1;
+    
+    IF v_next_maintenance IS NULL THEN
+        RETURN 'No Maintenance Scheduled';
+    ELSIF v_next_maintenance < CURRENT_DATE THEN
+        RETURN 'Overdue';
+    ELSIF v_next_maintenance <= CURRENT_DATE + INTERVAL '7 days' THEN
+        RETURN 'Due Soon';
+    ELSIF v_next_maintenance <= CURRENT_DATE + INTERVAL '30 days' THEN
+        RETURN 'Upcoming';
+    ELSE
+        RETURN 'Scheduled';
+    END IF;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 'Error';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Test: SELECT get_equipment_status(1);
+
+
+-- ============================================
+-- PART 2: STORED PROCEDURES
+-- ============================================
+
+-- Procedure 1: Update All Engagement Scores (Main Analytics Procedure)
+CREATE OR REPLACE PROCEDURE update_all_engagement_scores()
+LANGUAGE plpgsql AS $$
+DECLARE
+    member_rec RECORD;
+    v_attendance_score DECIMAL;
+    v_goal_score DECIMAL;
+    v_overall_score DECIMAL;
+    v_risk_level VARCHAR;
+    v_count INTEGER := 0;
+BEGIN
+    -- Loop through all active members
+    FOR member_rec IN 
+        SELECT member_id FROM members WHERE status = 'active'
+    LOOP
+        -- Calculate attendance score
+        v_attendance_score := calculate_attendance_score(member_rec.member_id, 30);
+        
+        -- Calculate goal progress score
+        v_goal_score := calculate_goal_progress_score(member_rec.member_id);
+        
+        -- Calculate overall engagement score (weighted average)
+        v_overall_score := ROUND((v_attendance_score * 0.6 + v_goal_score * 0.4), 2);
+        
+        -- Determine churn risk level
+        v_risk_level := determine_churn_risk(v_overall_score);
+        
+        -- Insert or update engagement score
+        INSERT INTO member_engagement_scores (
+            member_id, 
+            calculation_date,
+            attendance_score,
+            goal_progress_score,
+            overall_engagement_score,
+            churn_risk_level
+        ) VALUES (
+            member_rec.member_id,
+            CURRENT_DATE,
+            v_attendance_score,
+            v_goal_score,
+            v_overall_score,
+            v_risk_level
+        )
+        ON CONFLICT (member_id, calculation_date) 
+        DO UPDATE SET
+            attendance_score = EXCLUDED.attendance_score,
+            goal_progress_score = EXCLUDED.goal_progress_score,
+            overall_engagement_score = EXCLUDED.overall_engagement_score,
+            churn_risk_level = EXCLUDED.churn_risk_level,
+            created_at = CURRENT_TIMESTAMP;
+        
+        v_count := v_count + 1;
+    END LOOP;
+    
+    RAISE NOTICE 'Engagement scores updated for % active members', v_count;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Error updating engagement scores: %', SQLERRM;
+END;
+$$;
+
+-- Test: CALL update_all_engagement_scores();
+
+
+-- Procedure 2: Process Expired Subscriptions
+CREATE OR REPLACE PROCEDURE process_expired_subscriptions()
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_expired_count INTEGER := 0;
+    v_member_id INTEGER;
+BEGIN
+    -- Update members with expired subscriptions to inactive
+    FOR v_member_id IN (
+        SELECT DISTINCT m.member_id
+        FROM members m
+        WHERE m.status = 'active'
+          AND NOT EXISTS (
+              SELECT 1 FROM member_subscriptions ms
+              WHERE ms.member_id = m.member_id
+                AND ms.end_date >= CURRENT_DATE
+          )
+          AND EXISTS (
+              SELECT 1 FROM member_subscriptions ms
+              WHERE ms.member_id = m.member_id
+          )
+    )
+    LOOP
+        UPDATE members 
+        SET status = 'inactive', 
+            updated_at = CURRENT_TIMESTAMP
+        WHERE member_id = v_member_id;
+        
+        v_expired_count := v_expired_count + 1;
+        
+        RAISE NOTICE 'Member ID % marked as inactive due to expired subscription', v_member_id;
+    END LOOP;
+    
+    RAISE NOTICE 'Total members marked inactive: %', v_expired_count;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Error processing expired subscriptions: %', SQLERRM;
+END;
+$$;
+
+-- Test: CALL process_expired_subscriptions();
+
+
+-- Procedure 3: Generate Monthly Revenue Report
+CREATE OR REPLACE PROCEDURE generate_monthly_revenue_report(
+    p_year INTEGER,
+    p_month INTEGER
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_total_revenue DECIMAL;
+    v_total_subscriptions INTEGER;
+    v_avg_subscription DECIMAL;
+    plan_rec RECORD;
+BEGIN
+    -- Calculate overall statistics
+    SELECT 
+        COUNT(*) AS total_subs,
+        SUM(amount_paid) AS total_rev,
+        AVG(amount_paid) AS avg_sub
+    INTO v_total_subscriptions, v_total_revenue, v_avg_subscription
+    FROM member_subscriptions
+    WHERE EXTRACT(YEAR FROM start_date) = p_year
+      AND EXTRACT(MONTH FROM start_date) = p_month
+      AND payment_status = 'completed';
+    
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'MONTHLY REVENUE REPORT - %-%', p_year, LPAD(p_month::TEXT, 2, '0');
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'Total Subscriptions: %', v_total_subscriptions;
+    RAISE NOTICE 'Total Revenue: ₹%', v_total_revenue;
+    RAISE NOTICE 'Average Subscription Value: ₹%', ROUND(v_avg_subscription, 2);
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'REVENUE BY PLAN:';
+    RAISE NOTICE '========================================';
+    
+    -- Revenue breakdown by plan
+    FOR plan_rec IN (
+        SELECT 
+            mp.plan_name,
+            COUNT(ms.subscription_id) AS sub_count,
+            SUM(ms.amount_paid) AS plan_revenue
+        FROM membership_plans mp
+        LEFT JOIN member_subscriptions ms ON mp.plan_id = ms.plan_id
+            AND EXTRACT(YEAR FROM ms.start_date) = p_year
+            AND EXTRACT(MONTH FROM ms.start_date) = p_month
+            AND ms.payment_status = 'completed'
+        GROUP BY mp.plan_id, mp.plan_name
+        HAVING COUNT(ms.subscription_id) > 0
+        ORDER BY plan_revenue DESC
+    )
+    LOOP
+        RAISE NOTICE '% : % subscriptions, ₹%', 
+            RPAD(plan_rec.plan_name, 25), 
+            plan_rec.sub_count, 
+            plan_rec.plan_revenue;
+    END LOOP;
+    
+    RAISE NOTICE '========================================';
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Error generating report: %', SQLERRM;
+END;
+$$;
+
+-- Test: CALL generate_monthly_revenue_report(2024, 8);
+
+
+-- Procedure 4: Member Check-in with Validation
+CREATE OR REPLACE PROCEDURE member_checkin(
+    p_member_id INTEGER,
+    OUT success BOOLEAN,
+    OUT message TEXT
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_member_status VARCHAR;
+    v_subscription_end DATE;
+    v_already_checked_in BOOLEAN;
+BEGIN
+    success := FALSE;
+    
+    -- Check if member exists
+    SELECT status INTO v_member_status
+    FROM members
+    WHERE member_id = p_member_id;
+    
+    IF NOT FOUND THEN
+        message := 'Member not found';
+        RETURN;
+    END IF;
+    
+    -- Check member status
+    IF v_member_status != 'active' THEN
+        message := 'Member status is ' || v_member_status || '. Cannot check-in.';
+        RETURN;
+    END IF;
+    
+    -- Check subscription validity
+    SELECT MAX(end_date) INTO v_subscription_end
+    FROM member_subscriptions
+    WHERE member_id = p_member_id;
+    
+    IF v_subscription_end IS NULL OR v_subscription_end < CURRENT_DATE THEN
+        message := 'Subscription expired. Please renew.';
+        RETURN;
+    END IF;
+    
+    -- Check if already checked in today
+    SELECT EXISTS(
+        SELECT 1 FROM attendance
+        WHERE member_id = p_member_id
+          AND date = CURRENT_DATE
+          AND check_out_time IS NULL
+    ) INTO v_already_checked_in;
+    
+    IF v_already_checked_in THEN
+        message := 'Member already checked in today';
+        RETURN;
+    END IF;
+    
+    -- All validations passed, create check-in record
+    INSERT INTO attendance (member_id, check_in_time, date)
+    VALUES (p_member_id, CURRENT_TIMESTAMP, CURRENT_DATE);
+    
+    success := TRUE;
+    message := 'Check-in successful';
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        success := FALSE;
+        message := 'Error during check-in: ' || SQLERRM;
+END;
+$$;
+
+-- Test: 
+-- DO $$
+-- DECLARE
+--     v_success BOOLEAN;
+--     v_message TEXT;
+-- BEGIN
+--     CALL member_checkin(1, v_success, v_message);
+--     RAISE NOTICE 'Success: %, Message: %', v_success, v_message;
+-- END $$;
+
+
+-- Procedure 5: Member Check-out
+CREATE OR REPLACE PROCEDURE member_checkout(
+    p_member_id INTEGER,
+    OUT success BOOLEAN,
+    OUT message TEXT
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_attendance_id INTEGER;
+BEGIN
+    success := FALSE;
+    
+    -- Find today's check-in record without check-out
+    SELECT attendance_id INTO v_attendance_id
+    FROM attendance
+    WHERE member_id = p_member_id
+      AND date = CURRENT_DATE
+      AND check_out_time IS NULL
+    ORDER BY check_in_time DESC
+    LIMIT 1;
+    
+    IF NOT FOUND THEN
+        message := 'No active check-in found for today';
+        RETURN;
+    END IF;
+    
+    -- Update with check-out time
+    UPDATE attendance
+    SET check_out_time = CURRENT_TIMESTAMP
+    WHERE attendance_id = v_attendance_id;
+    
+    success := TRUE;
+    message := 'Check-out successful';
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        success := FALSE;
+        message := 'Error during check-out: ' || SQLERRM;
+END;
+$$;
+
+-- Test: Similar to check-in
+
+
+-- Procedure 6: Schedule Equipment Maintenance
+CREATE OR REPLACE PROCEDURE schedule_equipment_maintenance(
+    p_equipment_id INTEGER,
+    p_maintenance_type VARCHAR,
+    p_description TEXT,
+    p_scheduled_date DATE,
+    OUT success BOOLEAN,
+    OUT message TEXT
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_equipment_status VARCHAR;
+BEGIN
+    success := FALSE;
+    
+    -- Check if equipment exists
+    SELECT status INTO v_equipment_status
+    FROM equipment
+    WHERE equipment_id = p_equipment_id;
+    
+    IF NOT FOUND THEN
+        message := 'Equipment not found';
+        RETURN;
+    END IF;
+    
+    -- Insert maintenance record
+    INSERT INTO equipment_maintenance (
+        equipment_id,
+        maintenance_date,
+        maintenance_type,
+        description,
+        next_maintenance_date
+    ) VALUES (
+        p_equipment_id,
+        p_scheduled_date,
+        p_maintenance_type,
+        p_description,
+        p_scheduled_date + INTERVAL '3 months'  -- Default next maintenance in 3 months
+    );
+    
+    -- Update equipment status if maintenance is today or past
+    IF p_scheduled_date <= CURRENT_DATE THEN
+        UPDATE equipment
+        SET status = 'maintenance'
+        WHERE equipment_id = p_equipment_id;
+    END IF;
+    
+    success := TRUE;
+    message := 'Maintenance scheduled successfully';
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        success := FALSE;
+        message := 'Error scheduling maintenance: ' || SQLERRM;
+END;
+$$;
+
+
+-- ============================================
+-- PART 3: TRIGGERS
+-- ============================================
+
+-- Trigger 1: Auto-calculate BMI when body metrics are inserted/updated
+CREATE OR REPLACE FUNCTION trigger_calculate_bmi()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Calculate BMI if weight and height are provided
+    IF NEW.weight_kg IS NOT NULL AND NEW.height_cm IS NOT NULL THEN
+        NEW.bmi := calculate_bmi(NEW.weight_kg, NEW.height_cm);
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS auto_calculate_bmi ON member_body_metrics;
+CREATE TRIGGER auto_calculate_bmi
+    BEFORE INSERT OR UPDATE ON member_body_metrics
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_calculate_bmi();
+
+-- Test: 
+-- INSERT INTO member_body_metrics (member_id, measurement_date, weight_kg, height_cm)
+-- VALUES (1, CURRENT_DATE, 75, 175);
+-- SELECT * FROM member_body_metrics WHERE member_id = 1 ORDER BY measurement_date DESC LIMIT 1;
+
+
+-- Trigger 2: Update timestamp on member record changes
+CREATE OR REPLACE FUNCTION trigger_update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at := CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_member_timestamp ON members;
+CREATE TRIGGER update_member_timestamp
+    BEFORE UPDATE ON members
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_update_timestamp();
+
+
+-- Trigger 3: Validate subscription dates
+CREATE OR REPLACE FUNCTION trigger_validate_subscription()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check end date is after start date
+    IF NEW.end_date <= NEW.start_date THEN
+        RAISE EXCEPTION 'Subscription end date must be after start date';
+    END IF;
+    
+    -- Check amount paid is not negative
+    IF NEW.amount_paid < 0 THEN
+        RAISE EXCEPTION 'Amount paid cannot be negative';
+    END IF;
+    
+    -- Check if member exists and is not suspended
+    IF NOT EXISTS (
+        SELECT 1 FROM members 
+        WHERE member_id = NEW.member_id 
+        AND status != 'suspended'
+    ) THEN
+        RAISE EXCEPTION 'Cannot create subscription for suspended or non-existent member';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS validate_subscription ON member_subscriptions;
+CREATE TRIGGER validate_subscription
+    BEFORE INSERT OR UPDATE ON member_subscriptions
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_validate_subscription();
+
+
+-- Trigger 4: Validate attendance check-out time
+CREATE OR REPLACE FUNCTION trigger_validate_attendance()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Ensure check-out is after check-in
+    IF NEW.check_out_time IS NOT NULL AND NEW.check_out_time <= NEW.check_in_time THEN
+        RAISE EXCEPTION 'Check-out time must be after check-in time';
+    END IF;
+    
+    -- Ensure attendance date matches check-in date
+    IF NEW.date != DATE(NEW.check_in_time) THEN
+        NEW.date := DATE(NEW.check_in_time);
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS validate_attendance ON attendance;
+CREATE TRIGGER validate_attendance
+    BEFORE INSERT OR UPDATE ON attendance
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_validate_attendance();
+
+
+-- Trigger 5: Log when member status changes
+CREATE OR REPLACE FUNCTION trigger_log_member_status_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.status IS DISTINCT FROM NEW.status THEN
+        RAISE NOTICE 'Member % status changed from % to %', 
+            NEW.member_id, OLD.status, NEW.status;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS log_member_status_change ON members;
+CREATE TRIGGER log_member_status_change
+    AFTER UPDATE ON members
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_log_member_status_change();
+
+
+-- Trigger 6: Prevent deletion of equipment with pending maintenance
+CREATE OR REPLACE FUNCTION trigger_prevent_equipment_deletion()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_pending_maintenance INTEGER;
+BEGIN
+    -- Check for future maintenance
+    SELECT COUNT(*) INTO v_pending_maintenance
+    FROM equipment_maintenance
+    WHERE equipment_id = OLD.equipment_id
+      AND next_maintenance_date >= CURRENT_DATE;
+    
+    IF v_pending_maintenance > 0 THEN
+        RAISE EXCEPTION 'Cannot delete equipment with pending maintenance. Please complete or cancel maintenance first.';
+    END IF;
+    
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS prevent_equipment_deletion ON equipment;
+CREATE TRIGGER prevent_equipment_deletion
+    BEFORE DELETE ON equipment
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_prevent_equipment_deletion();
+
+
+-- ============================================
+-- PART 4: CURSOR EXAMPLES
+-- ============================================
+
+-- Procedure with Cursor: Generate Member Activity Report
+CREATE OR REPLACE PROCEDURE generate_member_activity_report()
+LANGUAGE plpgsql AS $$
+DECLARE
+    member_cursor CURSOR FOR 
+        SELECT m.member_id, m.first_name, m.last_name, m.email, m.status
+        FROM members m
+        WHERE m.status = 'active'
+        ORDER BY m.member_id;
+    
+    member_rec RECORD;
+    v_visits_30_days INTEGER;
+    v_total_goals INTEGER;
+    v_achieved_goals INTEGER;
+    v_subscription_days INTEGER;
+BEGIN
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'MEMBER ACTIVITY REPORT';
+    RAISE NOTICE 'Generated: %', CURRENT_TIMESTAMP;
+    RAISE NOTICE '========================================';
+    
+    OPEN member_cursor;
+    
+    LOOP
+        FETCH member_cursor INTO member_rec;
+        EXIT WHEN NOT FOUND;
+        
+        -- Get visits in last 30 days
+        SELECT COUNT(*) INTO v_visits_30_days
+        FROM attendance
+        WHERE member_id = member_rec.member_id
+          AND date >= CURRENT_DATE - INTERVAL '30 days';
+        
+        -- Get goal statistics
+        SELECT 
+            COUNT(*),
+            COUNT(CASE WHEN status = 'achieved' THEN 1 END)
+        INTO v_total_goals, v_achieved_goals
+        FROM member_fitness_goals
+        WHERE member_id = member_rec.member_id;
+        
+        -- Get subscription days remaining
+        v_subscription_days := get_days_until_expiry(member_rec.member_id);
+        
+        RAISE NOTICE 'ID: % | Name: % % | Visits(30d): % | Goals: %/% | Sub Days: %',
+            member_rec.member_id,
+            member_rec.first_name,
+            member_rec.last_name,
+            v_visits_30_days,
+            v_achieved_goals,
+            v_total_goals,
+            COALESCE(v_subscription_days::TEXT, 'N/A');
+    END LOOP;
+    
+    CLOSE member_cursor;
+    
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'Report Complete';
+    RAISE NOTICE '========================================';
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Error generating report: %', SQLERRM;
+END;
+$$;
+
+-- Test: CALL generate_member_activity_report();
+
+
+-- ============================================
+-- PART 5: TRANSACTION EXAMPLES
+-- ============================================
+
+-- Example Transaction 1: New Member Registration with Subscription
+CREATE OR REPLACE PROCEDURE register_new_member(
+    p_first_name VARCHAR,
+    p_last_name VARCHAR,
+    p_email VARCHAR,
+    p_phone VARCHAR,
+    p_plan_id INTEGER,
+    OUT new_member_id INTEGER,
+    OUT success BOOLEAN,
+    OUT message TEXT
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_plan_price DECIMAL;
+    v_plan_duration INTEGER;
+BEGIN
+    success := FALSE;
+    
+    BEGIN
+        -- Start transaction
+        
+        -- Check if email already exists
+        IF EXISTS (SELECT 1 FROM members WHERE email = p_email) THEN
+            message := 'Email already registered';
+            RETURN;
+        END IF;
+        
+        -- Get plan details
+        SELECT price, duration_months INTO v_plan_price, v_plan_duration
+        FROM membership_plans
+        WHERE plan_id = p_plan_id AND is_active = TRUE;
+        
+        IF NOT FOUND THEN
+            message := 'Invalid membership plan';
+            RETURN;
+        END IF;
+        
+        -- Insert member
+        INSERT INTO members (first_name, last_name, email, phone, status)
+        VALUES (p_first_name, p_last_name, p_email, p_phone, 'active')
+        RETURNING member_id INTO new_member_id;
+        
+        -- Create subscription
+        INSERT INTO member_subscriptions (
+            member_id, plan_id, start_date, end_date, 
+            amount_paid, payment_status
+        ) VALUES (
+            new_member_id,
+            p_plan_id,
+            CURRENT_DATE,
+            CURRENT_DATE + (v_plan_duration || ' months')::INTERVAL,
+            v_plan_price,
+            'completed'
+        );
+        
+        success := TRUE;
+        message := 'Member registered successfully with ID: ' || new_member_id;
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            success := FALSE;
+            message := 'Registration failed: ' || SQLERRM;
+            RAISE;
+    END;
+END;
+$$;
+
+-- Test:
+-- DO $$
+-- DECLARE
+--     v_member_id INTEGER;
+--     v_success BOOLEAN;
+--     v_message TEXT;
+-- BEGIN
+--     CALL register_new_member('Test', 'User', 'test@email.com', '9999999999', 2, v_member_id, v_success, v_message);
+--     RAISE NOTICE 'Success: %, Member ID: %, Message: %', v_success, v_member_id, v_message;
+-- END $$;
+
+
+-- ============================================
+-- PART 6: UTILITY PROCEDURES
+-- ============================================
+
+-- Procedure: Clean old data
+CREATE OR REPLACE PROCEDURE cleanup_old_data(p_months_old INTEGER DEFAULT 24)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_deleted_attendance INTEGER;
+    v_deleted_metrics INTEGER;
+BEGIN
+    -- Delete old attendance records
+    DELETE FROM attendance
+    WHERE date < CURRENT_DATE - (p_months_old || ' months')::INTERVAL;
+    
+    GET DIAGNOSTICS v_deleted_attendance = ROW_COUNT;
+    
+    -- Delete old body metrics (keep at least one per member)
+    DELETE FROM member_body_metrics mbm
+    WHERE measurement_date < CURRENT_DATE - (p_months_old || ' months')::INTERVAL
+      AND EXISTS (
+          SELECT 1 FROM member_body_metrics
+          WHERE member_id = mbm.member_id
+            AND measurement_date > mbm.measurement_date
+      );
+    
+    GET DIAGNOSTICS v_deleted_metrics = ROW_COUNT;
+    
+    RAISE NOTICE 'Cleanup complete:';
+    RAISE NOTICE '- Deleted % old attendance records', v_deleted_attendance;
+    RAISE NOTICE '- Deleted % old body metric records', v_deleted_metrics;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Error during cleanup: %', SQLERRM;
+END;
+$$;
+
+
+-- ============================================
+-- VERIFICATION & TESTING
+-- ============================================
+
+-- Test all functions
+SELECT '=== TESTING FUNCTIONS ===' AS test_section;
+
+SELECT 'BMI Calculation' AS test, calculate_bmi(70, 170) AS result;
+SELECT 'Engagement Level' AS test, get_engagement_level(1) AS result;
+SELECT 'Days Until Expiry' AS test, get_days_until_expiry(1) AS result;
+SELECT 'Attendance Score' AS test, calculate_attendance_score(1, 30) AS result;
+SELECT 'Goal Progress Score' AS test, calculate_goal_progress_score(1) AS result;
+SELECT 'Churn Risk' AS test, determine_churn_risk(65) AS result;
+SELECT 'Equipment Status' AS test, get_equipment_status(1) AS result;
+
+-- Test procedures (commented out - uncomment to run)
+-- CALL update_all_engagement_scores();
+-- CALL process_expired_subscriptions();
+-- CALL generate_monthly_revenue_report(2024, 8);
+
+SELECT '=== ALL PL/pgSQL OBJECTS CREATED SUCCESSFULLY ===' AS status;
+
+-- ============================================
+-- END OF PL/pgSQL IMPLEMENTATION
+-- ============================================
