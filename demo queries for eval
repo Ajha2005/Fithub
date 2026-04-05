@@ -1,466 +1,828 @@
--- ============================================
--- FITHUB GYM - 20 DEMO QUERIES FOR EVALUATION
--- ============================================
--- These queries showcase database features during live demo
-
--- SECTION 1: WARM-UP QUERIES (Simple SELECT)
--- ============================================
-
--- Query 1: Show all active members with subscriptions
--- Demonstrates: Basic JOIN, Views
-SELECT * FROM active_members_view 
-ORDER BY days_remaining ASC 
-LIMIT 10;
-
--- Query 2: Today's gym attendance
--- Demonstrates: Date filtering, Aggregate function
-SELECT 
-    COUNT(*) AS total_check_ins,
-    COUNT(DISTINCT member_id) AS unique_members,
-    MIN(check_in_time) AS first_check_in,
-    MAX(check_in_time) AS last_check_in
-FROM attendance
-WHERE date = CURRENT_DATE;
-
--- Query 3: All membership plans with pricing
--- Demonstrates: Simple SELECT with ordering
-SELECT 
-    plan_name,
-    duration_months,
-    price,
-    ROUND(price / duration_months, 2) AS price_per_month
-FROM membership_plans
-WHERE is_active = TRUE
-ORDER BY price;
+-- ============================================================
+-- FITHUB GYM MANAGEMENT — DEMO QUERIES FOR PROJECT EVALUATION
+-- ============================================================
+-- Run Order: schema → sample_data → plpgsql → THIS FILE
+-- Database  : PostgreSQL 14+
+-- Sections  :
+--   A. Basic SELECT & Filtering
+--   B. Aggregate Functions & GROUP BY
+--   C. JOINs (INNER, LEFT, SELF, Multi-table)
+--   D. Subqueries & CTEs
+--   E. Window Functions
+--   F. Views Demo
+--   G. Functions Demo
+--   H. Stored Procedures Demo
+--   I. Triggers Demo
+--   J. Cursor Procedure Demo
+--   K. Viva/Edge-Case Queries
+-- ============================================================
 
 
--- ============================================
--- SECTION 2: INTERMEDIATE QUERIES (Joins & Aggregates)
--- ============================================
+-- ============================================================
+-- SECTION A: BASIC SELECT, FILTERING & SORTING
+-- ============================================================
 
--- Query 4: Members with their subscription details
--- Demonstrates: Multiple JOINS
-SELECT 
-    m.member_id,
-    m.first_name || ' ' || m.last_name AS member_name,
-    m.email,
-    mp.plan_name,
-    ms.start_date,
-    ms.end_date,
-    ms.amount_paid,
-    CASE 
-        WHEN ms.end_date >= CURRENT_DATE THEN 'Active'
-        WHEN ms.end_date >= CURRENT_DATE - INTERVAL '30 days' THEN 'Recently Expired'
-        ELSE 'Expired'
-    END AS status
-FROM members m
-JOIN member_subscriptions ms ON m.member_id = ms.member_id
-JOIN membership_plans mp ON ms.plan_id = mp.plan_id
-WHERE ms.end_date = (SELECT MAX(end_date) FROM member_subscriptions WHERE member_id = m.member_id)
-ORDER BY ms.end_date DESC
-LIMIT 15;
+-- A1. List all active members with their basic info
+SELECT member_id, first_name, last_name, email, phone,
+       gender, registration_date, status
+FROM   members
+WHERE  status = 'active'
+ORDER  BY registration_date DESC;
 
--- Query 5: Member attendance frequency (last 30 days)
--- Demonstrates: JOIN, GROUP BY, Aggregate functions
-SELECT 
-    m.member_id,
-    m.first_name,
-    m.last_name,
-    COUNT(a.attendance_id) AS total_visits,
-    COUNT(DISTINCT a.date) AS unique_days,
-    ROUND(COUNT(a.attendance_id)::NUMERIC / 30, 2) AS avg_visits_per_day
-FROM members m
-LEFT JOIN attendance a ON m.member_id = a.member_id 
-    AND a.date >= CURRENT_DATE - INTERVAL '30 days'
-WHERE m.status = 'active'
-GROUP BY m.member_id, m.first_name, m.last_name
-HAVING COUNT(a.attendance_id) > 0
-ORDER BY total_visits DESC
-LIMIT 10;
+-- A2. Members registered in 2025
+SELECT first_name, last_name, email, registration_date
+FROM   members
+WHERE  registration_date BETWEEN '2025-01-01' AND '2025-12-31'
+ORDER  BY registration_date;
 
--- Query 6: Revenue by membership plan
--- Demonstrates: LEFT JOIN, GROUP BY, Aggregate functions, HAVING
-SELECT 
-    mp.plan_name,
-    mp.duration_months,
-    COUNT(ms.subscription_id) AS total_subscriptions,
-    SUM(ms.amount_paid) AS total_revenue,
-    ROUND(AVG(ms.amount_paid), 2) AS avg_revenue,
-    MIN(ms.start_date) AS first_sale,
-    MAX(ms.start_date) AS latest_sale
-FROM membership_plans mp
-LEFT JOIN member_subscriptions ms ON mp.plan_id = ms.plan_id
-WHERE ms.payment_status = 'completed'
-GROUP BY mp.plan_id, mp.plan_name, mp.duration_months
-HAVING SUM(ms.amount_paid) > 0
-ORDER BY total_revenue DESC;
+-- A3. Female members who are active
+SELECT first_name, last_name, email, date_of_birth
+FROM   members
+WHERE  gender = 'Female' AND status = 'active'
+ORDER  BY last_name;
+
+-- A4. All membership plans sorted by price
+SELECT plan_id, plan_name, duration_months,
+       price, facilities_included, is_active
+FROM   membership_plans
+ORDER  BY price;
+
+-- A5. Equipment currently under maintenance or out of order
+SELECT equipment_id, equipment_name, category, brand, location, status
+FROM   equipment
+WHERE  status IN ('maintenance', 'out_of_order')
+ORDER  BY status, equipment_name;
+
+-- A6. Members whose subscription was paid via UPI
+SELECT m.first_name, m.last_name, ms.amount_paid,
+       ms.payment_method, ms.start_date, ms.end_date
+FROM   members m
+JOIN   member_subscriptions ms ON m.member_id = ms.member_id
+WHERE  ms.payment_method = 'upi'
+ORDER  BY ms.start_date DESC;
+
+-- A7. Members with auto-renew enabled
+SELECT m.first_name, m.last_name, mp.plan_name,
+       ms.end_date, ms.auto_renew
+FROM   members m
+JOIN   member_subscriptions ms ON m.member_id = ms.member_id
+JOIN   membership_plans     mp ON ms.plan_id  = mp.plan_id
+WHERE  ms.auto_renew = TRUE
+ORDER  BY ms.end_date;
 
 
--- ============================================
--- SECTION 3: ADVANCED QUERIES (Subqueries & Window Functions)
--- ============================================
+-- ============================================================
+-- SECTION B: AGGREGATE FUNCTIONS & GROUP BY
+-- ============================================================
 
--- Query 7: Members who visit more than average
--- Demonstrates: Subquery in HAVING clause
-SELECT 
-    m.first_name,
-    m.last_name,
-    COUNT(a.attendance_id) AS visit_count
-FROM members m
-JOIN attendance a ON m.member_id = a.member_id
-WHERE a.date >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY m.member_id, m.first_name, m.last_name
+-- B1. Count of members by status
+SELECT status, COUNT(*) AS member_count
+FROM   members
+GROUP  BY status
+ORDER  BY member_count DESC;
+
+-- B2. Total revenue collected per membership plan
+SELECT mp.plan_name,
+       COUNT(ms.subscription_id)        AS total_subscriptions,
+       SUM(ms.amount_paid)              AS total_revenue,
+       ROUND(AVG(ms.amount_paid), 2)    AS avg_amount
+FROM   membership_plans mp
+JOIN   member_subscriptions ms ON mp.plan_id = ms.plan_id
+WHERE  ms.payment_status = 'completed'
+GROUP  BY mp.plan_id, mp.plan_name
+ORDER  BY total_revenue DESC;
+
+-- B3. Monthly subscription revenue for 2025
+SELECT EXTRACT(MONTH FROM start_date)::INTEGER AS month,
+       TO_CHAR(start_date, 'Month')            AS month_name,
+       COUNT(*)                                AS subscriptions,
+       SUM(amount_paid)                        AS revenue
+FROM   member_subscriptions
+WHERE  EXTRACT(YEAR FROM start_date) = 2025
+  AND  payment_status = 'completed'
+GROUP  BY EXTRACT(MONTH FROM start_date), TO_CHAR(start_date, 'Month')
+ORDER  BY month;
+
+-- B4. Attendance count per member in March 2026 (top 10 most active)
+SELECT m.first_name, m.last_name,
+       COUNT(a.attendance_id) AS visits
+FROM   members m
+JOIN   attendance a ON m.member_id = a.member_id
+WHERE  a.date BETWEEN '2026-03-01' AND '2026-03-31'
+GROUP  BY m.member_id, m.first_name, m.last_name
+ORDER  BY visits DESC
+LIMIT  10;
+
+-- B5. Equipment count by category
+SELECT category,
+       COUNT(*)                                  AS total_units,
+       COUNT(CASE WHEN status = 'operational'    THEN 1 END) AS operational,
+       COUNT(CASE WHEN status = 'maintenance'    THEN 1 END) AS under_maintenance,
+       COUNT(CASE WHEN status = 'out_of_order'   THEN 1 END) AS out_of_order,
+       COUNT(CASE WHEN status = 'retired'        THEN 1 END) AS retired
+FROM   equipment
+GROUP  BY category
+ORDER  BY total_units DESC;
+
+-- B6. Number of goals by type and status
+SELECT goal_type, status, COUNT(*) AS count
+FROM   member_fitness_goals
+GROUP  BY goal_type, status
+ORDER  BY goal_type, status;
+
+-- B7. Total maintenance cost per equipment
+SELECT e.equipment_name, e.brand,
+       COUNT(em.maintenance_id)   AS maintenance_count,
+       SUM(em.cost)               AS total_cost,
+       MAX(em.maintenance_date)   AS last_serviced
+FROM   equipment e
+JOIN   equipment_maintenance em ON e.equipment_id = em.equipment_id
+GROUP  BY e.equipment_id, e.equipment_name, e.brand
+ORDER  BY total_cost DESC;
+
+-- B8. Average body weight by gender (latest reading per member)
+SELECT m.gender,
+       ROUND(AVG(mbm.weight_kg), 2) AS avg_weight_kg,
+       ROUND(AVG(mbm.bmi),       2) AS avg_bmi,
+       COUNT(DISTINCT m.member_id)  AS members_tracked
+FROM   members m
+JOIN   member_body_metrics mbm ON m.member_id = mbm.member_id
+WHERE  mbm.measurement_date = (
+           SELECT MAX(measurement_date)
+           FROM   member_body_metrics
+           WHERE  member_id = m.member_id
+       )
+GROUP  BY m.gender;
+
+
+-- ============================================================
+-- SECTION C: JOINS
+-- ============================================================
+
+-- C1. INNER JOIN — Members with their current plan name
+SELECT m.member_id, m.first_name, m.last_name,
+       mp.plan_name, ms.start_date, ms.end_date,
+       ms.amount_paid, ms.payment_status
+FROM   members m
+JOIN   member_subscriptions ms ON m.member_id = ms.member_id
+JOIN   membership_plans     mp ON ms.plan_id  = mp.plan_id
+ORDER  BY ms.end_date DESC;
+
+-- C2. LEFT JOIN — Members who have NO fitness goals recorded
+SELECT m.member_id, m.first_name, m.last_name, m.status
+FROM   members m
+LEFT   JOIN member_fitness_goals mfg ON m.member_id = mfg.member_id
+WHERE  mfg.goal_id IS NULL
+ORDER  BY m.member_id;
+
+-- C3. LEFT JOIN — Members who have NO body metrics recorded
+SELECT m.member_id, m.first_name, m.last_name
+FROM   members m
+LEFT   JOIN member_body_metrics mbm ON m.member_id = mbm.member_id
+WHERE  mbm.metric_id IS NULL
+ORDER  BY m.member_id;
+
+-- C4. Multi-table JOIN — Full member snapshot
+--     (member + subscription + plan + latest body metric)
+SELECT m.first_name,
+       m.last_name,
+       mp.plan_name,
+       ms.end_date             AS sub_expires,
+       mbm.weight_kg,
+       mbm.bmi,
+       mbm.body_fat_percentage,
+       mbm.measurement_date    AS last_measured
+FROM   members m
+JOIN   member_subscriptions ms  ON m.member_id   = ms.member_id
+JOIN   membership_plans     mp  ON ms.plan_id     = mp.plan_id
+LEFT   JOIN member_body_metrics mbm ON m.member_id = mbm.member_id
+       AND mbm.measurement_date = (
+           SELECT MAX(measurement_date)
+           FROM   member_body_metrics
+           WHERE  member_id = m.member_id
+       )
+WHERE  m.status = 'active'
+ORDER  BY m.last_name;
+
+-- C5. Equipment with its latest maintenance record (LATERAL JOIN)
+SELECT e.equipment_id, e.equipment_name, e.status,
+       em.maintenance_date     AS last_maintained,
+       em.next_maintenance_date,
+       em.maintenance_type,
+       em.performed_by
+FROM   equipment e
+LEFT   JOIN LATERAL (
+    SELECT * FROM equipment_maintenance
+    WHERE  equipment_id = e.equipment_id
+    ORDER  BY maintenance_date DESC
+    LIMIT  1
+) em ON TRUE
+ORDER  BY e.equipment_id;
+
+-- C6. Members with their attendance count and subscription status
+SELECT m.first_name, m.last_name,
+       COUNT(a.attendance_id)  AS total_visits,
+       MAX(a.date)             AS last_visit,
+       mp.plan_name,
+       ms.end_date
+FROM   members m
+LEFT   JOIN attendance          a  ON m.member_id = a.member_id
+JOIN         member_subscriptions ms ON m.member_id = ms.member_id
+JOIN         membership_plans     mp ON ms.plan_id  = mp.plan_id
+WHERE  m.status = 'active'
+GROUP  BY m.member_id, m.first_name, m.last_name,
+          mp.plan_name, ms.end_date
+ORDER  BY total_visits DESC;
+
+
+-- ============================================================
+-- SECTION D: SUBQUERIES & CTEs
+-- ============================================================
+
+-- D1. Members whose subscription expires within the next 30 days
+SELECT m.first_name, m.last_name, m.email, m.phone,
+       ms.end_date,
+       (ms.end_date - CURRENT_DATE) AS days_left
+FROM   members m
+JOIN   member_subscriptions ms ON m.member_id = ms.member_id
+WHERE  ms.end_date = (
+           SELECT MAX(end_date) FROM member_subscriptions
+           WHERE  member_id = m.member_id
+       )
+  AND  ms.end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
+ORDER  BY ms.end_date;
+
+-- D2. Members who have attended more than the average attendance
+SELECT m.first_name, m.last_name,
+       COUNT(a.attendance_id) AS visit_count
+FROM   members m
+JOIN   attendance a ON m.member_id = a.member_id
+GROUP  BY m.member_id, m.first_name, m.last_name
 HAVING COUNT(a.attendance_id) > (
-    SELECT AVG(visit_count)
+    SELECT AVG(sub.visit_count)
     FROM (
-        SELECT COUNT(*) AS visit_count
-        FROM attendance
-        WHERE date >= CURRENT_DATE - INTERVAL '30 days'
-        GROUP BY member_id
-    ) AS avg_visits
+        SELECT COUNT(attendance_id) AS visit_count
+        FROM   attendance
+        GROUP  BY member_id
+    ) sub
 )
-ORDER BY visit_count DESC;
+ORDER  BY visit_count DESC;
 
--- Query 8: Member weight progress with change tracking
--- Demonstrates: Window functions (LAG, FIRST_VALUE)
-SELECT 
-    m.first_name,
-    m.last_name,
-    mbm.measurement_date,
-    mbm.weight_kg AS current_weight,
-    LAG(mbm.weight_kg) OVER (PARTITION BY m.member_id ORDER BY mbm.measurement_date) AS previous_weight,
-    mbm.weight_kg - LAG(mbm.weight_kg) OVER (PARTITION BY m.member_id ORDER BY mbm.measurement_date) AS weight_change,
-    FIRST_VALUE(mbm.weight_kg) OVER (PARTITION BY m.member_id ORDER BY mbm.measurement_date) AS starting_weight,
-    mbm.weight_kg - FIRST_VALUE(mbm.weight_kg) OVER (PARTITION BY m.member_id ORDER BY mbm.measurement_date) AS total_progress
-FROM members m
-JOIN member_body_metrics mbm ON m.member_id = mbm.member_id
-WHERE m.member_id IN (1, 2, 3, 4, 5)
-ORDER BY m.member_id, mbm.measurement_date;
-
--- Query 9: Members needing attention (Expiring soon + Low attendance)
--- Demonstrates: UNION, Multiple conditions
-(
-    SELECT 
-        m.member_id,
-        m.first_name || ' ' || m.last_name AS member_name,
-        m.email,
-        'Expiring Subscription' AS alert_type,
-        ms.end_date AS alert_date
-    FROM members m
-    JOIN member_subscriptions ms ON m.member_id = ms.member_id
-    WHERE ms.end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
-        AND ms.end_date = (SELECT MAX(end_date) FROM member_subscriptions WHERE member_id = m.member_id)
+-- D3. CTE — Revenue summary with running total
+WITH monthly_revenue AS (
+    SELECT DATE_TRUNC('month', start_date) AS month,
+           SUM(amount_paid)                AS revenue
+    FROM   member_subscriptions
+    WHERE  payment_status = 'completed'
+    GROUP  BY DATE_TRUNC('month', start_date)
 )
-UNION
-(
-    SELECT 
-        m.member_id,
-        m.first_name || ' ' || m.last_name AS member_name,
-        m.email,
-        'Low Attendance' AS alert_type,
-        NULL AS alert_date
-    FROM members m
-    WHERE m.status = 'active'
-        AND (
-            SELECT COUNT(*) 
-            FROM attendance 
-            WHERE member_id = m.member_id 
-                AND date >= CURRENT_DATE - INTERVAL '30 days'
-        ) < 4
+SELECT TO_CHAR(month, 'Mon YYYY')                          AS month,
+       revenue,
+       SUM(revenue) OVER (ORDER BY month)                  AS running_total
+FROM   monthly_revenue
+ORDER  BY month;
+
+-- D4. CTE — Members with their goal achievement rate
+WITH goal_stats AS (
+    SELECT member_id,
+           COUNT(*)                                            AS total_goals,
+           COUNT(CASE WHEN status = 'achieved' THEN 1 END)    AS achieved,
+           COUNT(CASE WHEN status = 'abandoned' THEN 1 END)   AS abandoned
+    FROM   member_fitness_goals
+    GROUP  BY member_id
 )
-ORDER BY alert_type, member_name
-LIMIT 15;
+SELECT m.first_name, m.last_name,
+       gs.total_goals,
+       gs.achieved,
+       gs.abandoned,
+       ROUND(gs.achieved * 100.0 / NULLIF(gs.total_goals, 0), 1) AS achievement_pct
+FROM   members m
+JOIN   goal_stats gs ON m.member_id = gs.member_id
+ORDER  BY achievement_pct DESC NULLS LAST;
 
--- Query 10: Attendance ranking by cohort
--- Demonstrates: Window functions (RANK), Date functions, CTEs
-WITH member_cohorts AS (
-    SELECT 
-        member_id,
-        first_name,
-        last_name,
-        DATE_TRUNC('month', registration_date) AS cohort_month
-    FROM members
-    WHERE status = 'active'
+-- D5. CTE — Equipment that is overdue for maintenance
+WITH latest_maintenance AS (
+    SELECT equipment_id,
+           MAX(next_maintenance_date) AS next_due
+    FROM   equipment_maintenance
+    GROUP  BY equipment_id
 )
-SELECT 
-    mc.first_name,
-    mc.last_name,
-    TO_CHAR(mc.cohort_month, 'Mon YYYY') AS cohort,
-    COUNT(a.attendance_id) AS visits,
-    RANK() OVER (
-        PARTITION BY mc.cohort_month 
-        ORDER BY COUNT(a.attendance_id) DESC
-    ) AS rank_in_cohort
-FROM member_cohorts mc
-LEFT JOIN attendance a ON mc.member_id = a.member_id
-    AND a.date >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY mc.member_id, mc.first_name, mc.last_name, mc.cohort_month
-ORDER BY mc.cohort_month DESC, rank_in_cohort
-LIMIT 20;
+SELECT e.equipment_id, e.equipment_name, e.category,
+       e.location, lm.next_due,
+       (CURRENT_DATE - lm.next_due) AS days_overdue
+FROM   equipment e
+JOIN   latest_maintenance lm ON e.equipment_id = lm.equipment_id
+WHERE  lm.next_due < CURRENT_DATE
+  AND  e.status    != 'retired'
+ORDER  BY days_overdue DESC;
+
+-- D6. Correlated subquery — Members whose latest weight is above
+--     the average weight of all tracked members
+SELECT m.first_name, m.last_name,
+       latest.weight_kg,
+       (SELECT ROUND(AVG(weight_kg), 2)
+        FROM   member_body_metrics)  AS avg_weight
+FROM   members m
+JOIN   LATERAL (
+    SELECT weight_kg
+    FROM   member_body_metrics
+    WHERE  member_id = m.member_id
+    ORDER  BY measurement_date DESC
+    LIMIT  1
+) latest ON TRUE
+WHERE  latest.weight_kg > (SELECT AVG(weight_kg) FROM member_body_metrics)
+ORDER  BY latest.weight_kg DESC;
 
 
--- ============================================
--- SECTION 4: ANALYTICS QUERIES (Showcase Features)
--- ============================================
+-- ============================================================
+-- SECTION E: WINDOW FUNCTIONS
+-- ============================================================
 
--- Query 11: CHURN PREDICTION - Members at risk
--- Demonstrates: Calling procedure, Complex filtering, CASE statements
--- First, ensure scores are updated
-CALL update_all_engagement_scores();
+-- E1. Rank members by total attendance (RANK)
+SELECT m.first_name, m.last_name,
+       COUNT(a.attendance_id)                       AS visits,
+       RANK() OVER (ORDER BY COUNT(a.attendance_id) DESC) AS rank
+FROM   members m
+JOIN   attendance a ON m.member_id = a.member_id
+GROUP  BY m.member_id, m.first_name, m.last_name
+ORDER  BY rank;
 
--- Then show at-risk members
-SELECT 
-    m.member_id,
-    m.first_name || ' ' || m.last_name AS member_name,
-    m.email,
-    m.phone,
-    mes.attendance_score,
-    mes.goal_progress_score,
-    mes.overall_engagement_score,
-    mes.churn_risk_level,
-    CASE mes.churn_risk_level
-        WHEN 'critical' THEN 'Immediate Action Required'
-        WHEN 'high' THEN 'Contact Within 48 Hours'
-        WHEN 'medium' THEN 'Monitor Closely'
-        ELSE 'Stable'
-    END AS recommended_action,
-    ms.end_date AS subscription_end
-FROM members m
-JOIN member_engagement_scores mes ON m.member_id = mes.member_id
-LEFT JOIN member_subscriptions ms ON m.member_id = ms.member_id
-    AND ms.end_date = (SELECT MAX(end_date) FROM member_subscriptions WHERE member_id = m.member_id)
-WHERE mes.calculation_date = CURRENT_DATE
-    AND mes.churn_risk_level IN ('high', 'critical')
-ORDER BY mes.overall_engagement_score ASC, mes.churn_risk_level DESC
-LIMIT 20;
+-- E2. Running total of revenue over time (SUM OVER)
+SELECT start_date,
+       amount_paid,
+       SUM(amount_paid) OVER (ORDER BY start_date
+                              ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+           AS running_revenue
+FROM   member_subscriptions
+WHERE  payment_status = 'completed'
+ORDER  BY start_date;
 
--- Query 12: Engagement score distribution
--- Demonstrates: Aggregate functions, Percentages
-SELECT 
-    churn_risk_level,
-    COUNT(*) AS member_count,
-    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentage,
-    ROUND(AVG(overall_engagement_score), 2) AS avg_score
-FROM member_engagement_scores
-WHERE calculation_date = CURRENT_DATE
-GROUP BY churn_risk_level
-ORDER BY 
-    CASE churn_risk_level
-        WHEN 'critical' THEN 1
-        WHEN 'high' THEN 2
-        WHEN 'medium' THEN 3
-        WHEN 'low' THEN 4
-    END;
+-- E3. Weight change between consecutive measurements per member (LAG)
+SELECT m.first_name, m.last_name,
+       mbm.measurement_date,
+       mbm.weight_kg,
+       LAG(mbm.weight_kg) OVER (PARTITION BY mbm.member_id
+                                ORDER BY mbm.measurement_date) AS prev_weight,
+       ROUND(
+           mbm.weight_kg -
+           LAG(mbm.weight_kg) OVER (PARTITION BY mbm.member_id
+                                    ORDER BY mbm.measurement_date),
+           2
+       )                          AS weight_change_kg
+FROM   members m
+JOIN   member_body_metrics mbm ON m.member_id = mbm.member_id
+ORDER  BY mbm.member_id, mbm.measurement_date;
 
--- Query 13: Peak hours analysis for staffing
--- Demonstrates: EXTRACT, GROUP BY time, Complex aggregation
-SELECT 
-    EXTRACT(HOUR FROM check_in_time) AS hour_of_day,
-    TO_CHAR(date, 'Day') AS day_of_week,
-    COUNT(*) AS total_check_ins,
-    COUNT(DISTINCT member_id) AS unique_members,
-    ROUND(AVG(EXTRACT(EPOCH FROM (check_out_time - check_in_time)) / 3600), 2) AS avg_duration_hours
-FROM attendance
-WHERE date >= CURRENT_DATE - INTERVAL '30 days'
-    AND check_out_time IS NOT NULL
-GROUP BY EXTRACT(HOUR FROM check_in_time), TO_CHAR(date, 'Day')
-HAVING COUNT(*) > 5
-ORDER BY total_check_ins DESC
-LIMIT 15;
+-- E4. Percentile rank of members by subscription amount (PERCENT_RANK)
+SELECT m.first_name, m.last_name,
+       ms.amount_paid,
+       mp.plan_name,
+       ROUND(PERCENT_RANK() OVER (ORDER BY ms.amount_paid) * 100, 1) AS percentile
+FROM   members m
+JOIN   member_subscriptions ms ON m.member_id = ms.member_id
+JOIN   membership_plans     mp ON ms.plan_id  = mp.plan_id
+ORDER  BY ms.amount_paid DESC;
 
--- Query 14: Equipment maintenance overview
--- Demonstrates: Views, CASE for status
-SELECT * FROM equipment_maintenance_view
-ORDER BY 
+-- E5. Row number for each member's attendance entries (ROW_NUMBER)
+SELECT m.first_name, m.last_name,
+       a.date, a.check_in_time,
+       ROW_NUMBER() OVER (PARTITION BY a.member_id
+                          ORDER BY a.check_in_time) AS visit_number
+FROM   members m
+JOIN   attendance a ON m.member_id = a.member_id
+ORDER  BY a.member_id, visit_number;
+
+-- E6. Average weight within each gender group (AVG OVER PARTITION)
+SELECT m.first_name, m.last_name, m.gender,
+       mbm.weight_kg,
+       ROUND(AVG(mbm.weight_kg) OVER (PARTITION BY m.gender), 2) AS gender_avg_weight,
+       ROUND(mbm.weight_kg - AVG(mbm.weight_kg) OVER (PARTITION BY m.gender), 2) AS diff_from_avg
+FROM   members m
+JOIN   member_body_metrics mbm ON m.member_id = mbm.member_id
+WHERE  mbm.measurement_date = (
+           SELECT MAX(measurement_date) FROM member_body_metrics
+           WHERE  member_id = m.member_id
+       )
+ORDER  BY m.gender, diff_from_avg DESC;
+
+
+-- ============================================================
+-- SECTION F: VIEWS DEMO
+-- ============================================================
+
+-- F1. Query the active_members_view — see all active members with plan info
+SELECT * FROM active_members_view
+ORDER  BY days_remaining ASC;
+
+-- F2. Filter from view — only members whose subscription has expired
+SELECT member_id, first_name, last_name,
+       plan_name, end_date, days_remaining
+FROM   active_members_view
+WHERE  subscription_status = 'Expired'
+ORDER  BY end_date;
+
+-- F3. Query equipment_maintenance_view — overdue and due-soon equipment
+SELECT equipment_name, category, brand, status,
+       last_maintenance, next_maintenance_date, maintenance_status
+FROM   equipment_maintenance_view
+WHERE  maintenance_status IN ('Overdue', 'Due Soon')
+ORDER  BY maintenance_status, next_maintenance_date;
+
+-- F4. Full equipment maintenance view ordered by status urgency
+SELECT equipment_name, status AS equip_status,
+       maintenance_status, next_maintenance_date,
+       last_maintenance_cost
+FROM   equipment_maintenance_view
+ORDER  BY
     CASE maintenance_status
-        WHEN 'Overdue' THEN 1
-        WHEN 'Due Soon' THEN 2
-        WHEN 'Upcoming' THEN 3
-        ELSE 4
+        WHEN 'Overdue'   THEN 1
+        WHEN 'Due Soon'  THEN 2
+        WHEN 'Upcoming'  THEN 3
+        ELSE                  4
     END,
     next_maintenance_date;
 
--- Query 15: Member lifetime value analysis
--- Demonstrates: Multiple aggregates, Complex calculations
-SELECT 
-    m.member_id,
-    m.first_name || ' ' || m.last_name AS member_name,
-    m.registration_date,
-    EXTRACT(DAY FROM AGE(CURRENT_DATE, m.registration_date)) AS days_as_member,
-    COUNT(DISTINCT ms.subscription_id) AS total_subscriptions,
-    SUM(ms.amount_paid) AS lifetime_revenue,
-    ROUND(SUM(ms.amount_paid) / NULLIF(EXTRACT(MONTH FROM AGE(CURRENT_DATE, m.registration_date)), 0), 2) AS avg_monthly_revenue,
-    COUNT(DISTINCT a.attendance_id) AS total_visits,
-    ROUND(COUNT(DISTINCT a.attendance_id)::NUMERIC / NULLIF(EXTRACT(DAY FROM AGE(CURRENT_DATE, m.registration_date)), 0), 2) AS avg_visits_per_day,
-    CASE 
-        WHEN SUM(ms.amount_paid) > 15000 THEN 'VIP'
-        WHEN SUM(ms.amount_paid) > 8000 THEN 'Premium'
-        WHEN SUM(ms.amount_paid) > 3000 THEN 'Standard'
-        ELSE 'Basic'
-    END AS member_tier
-FROM members m
-LEFT JOIN member_subscriptions ms ON m.member_id = ms.member_id AND ms.payment_status = 'completed'
-LEFT JOIN attendance a ON m.member_id = a.member_id
-WHERE m.registration_date <= CURRENT_DATE - INTERVAL '60 days'
-GROUP BY m.member_id, m.first_name, m.last_name, m.registration_date
-ORDER BY lifetime_revenue DESC
-LIMIT 20;
+-- F5. Query member_progress_view — members who lost weight
+SELECT first_name, last_name,
+       measurement_date, weight_kg,
+       previous_weight, weight_change_kg,
+       bmi, body_fat_percentage
+FROM   member_progress_view
+WHERE  weight_change_kg < 0
+ORDER  BY weight_change_kg ASC;
+
+-- F6. Best performers — highest weight loss from progress view
+SELECT first_name, last_name,
+       MIN(weight_change_kg)   AS max_loss_in_one_period,
+       SUM(weight_change_kg)   AS net_weight_change,
+       total_goals,
+       achieved_goals
+FROM   member_progress_view
+GROUP  BY member_id, first_name, last_name,
+          total_goals, achieved_goals
+HAVING MIN(weight_change_kg) IS NOT NULL
+ORDER  BY net_weight_change ASC;
 
 
--- ============================================
--- SECTION 5: FUNCTION & PROCEDURE DEMONSTRATIONS
--- ============================================
+-- ============================================================
+-- SECTION G: FUNCTIONS DEMO
+-- ============================================================
 
--- Query 16: Using custom functions
--- Demonstrates: User-defined functions
-SELECT 
-    member_id,
-    first_name,
-    last_name,
-    calculate_bmi(
-        (SELECT weight_kg FROM member_body_metrics WHERE member_id = m.member_id ORDER BY measurement_date DESC LIMIT 1),
-        (SELECT height_cm FROM member_body_metrics WHERE member_id = m.member_id ORDER BY measurement_date DESC LIMIT 1)
-    ) AS current_bmi,
-    get_engagement_level(member_id) AS engagement_level,
-    get_days_until_expiry(member_id) AS days_until_expiry
-FROM members m
-WHERE status = 'active'
-    AND EXISTS (SELECT 1 FROM member_body_metrics WHERE member_id = m.member_id)
-LIMIT 10;
+-- G1. Calculate BMI for custom values
+SELECT calculate_bmi(70, 175)  AS bmi_70kg_175cm,
+       calculate_bmi(90, 180)  AS bmi_90kg_180cm,
+       calculate_bmi(55, 160)  AS bmi_55kg_160cm;
 
--- Query 17: Member status summary using function
--- Demonstrates: Table-returning function
+-- G2. Days until expiry for several members
+SELECT m.member_id, m.first_name, m.last_name,
+       get_days_until_expiry(m.member_id) AS days_until_expiry
+FROM   members m
+WHERE  m.status = 'active'
+ORDER  BY days_until_expiry ASC
+LIMIT  15;
+
+-- G3. Attendance score for all active members
+SELECT m.first_name, m.last_name,
+       calculate_attendance_score(m.member_id, 30) AS score_30d,
+       calculate_attendance_score(m.member_id, 60) AS score_60d
+FROM   members m
+WHERE  m.status = 'active'
+ORDER  BY score_30d DESC
+LIMIT  15;
+
+-- G4. Goal progress score for each active member
+SELECT m.first_name, m.last_name,
+       calculate_goal_progress_score(m.member_id) AS goal_score
+FROM   members m
+WHERE  m.status = 'active'
+ORDER  BY goal_score DESC;
+
+-- G5. Equipment maintenance status via function
+SELECT e.equipment_id, e.equipment_name,
+       get_equipment_status(e.equipment_id) AS maintenance_status
+FROM   equipment e
+WHERE  e.status != 'retired'
+ORDER  BY e.equipment_id;
+
+-- G6. Full member status using get_member_status() table function
 SELECT * FROM get_member_status(1);
--- Run for multiple members
-SELECT * FROM get_member_status(2);
-SELECT * FROM get_member_status(3);
+SELECT * FROM get_member_status(9);
+SELECT * FROM get_member_status(17);
 
 
--- ============================================
--- SECTION 6: COMPLEX BUSINESS QUERIES
--- ============================================
+-- ============================================================
+-- SECTION H: STORED PROCEDURES DEMO
+-- ============================================================
 
--- Query 18: Monthly revenue report
--- Demonstrates: Date manipulation, Complex grouping
-CALL generate_monthly_revenue_report(2024, 8);
+-- H1. Process expired subscriptions
+--     (marks members with no active subscription as inactive)
+CALL process_expired_subscriptions();
 
--- Query 19: Equipment ROI analysis
--- Demonstrates: Complex calculations, Multiple joins
-SELECT 
-    e.equipment_name,
-    e.category,
-    e.brand,
-    e.purchase_date,
-    e.purchase_price,
-    EXTRACT(YEAR FROM AGE(CURRENT_DATE, e.purchase_date)) AS age_years,
-    COUNT(em.maintenance_id) AS total_maintenance_events,
-    COALESCE(SUM(em.cost), 0) AS total_maintenance_cost,
-    e.purchase_price + COALESCE(SUM(em.cost), 0) AS total_cost_of_ownership,
-    ROUND(
-        (e.purchase_price + COALESCE(SUM(em.cost), 0)) / 
-        NULLIF(EXTRACT(MONTH FROM AGE(CURRENT_DATE, e.purchase_date)), 0),
-        2
-    ) AS monthly_cost,
-    CASE 
-        WHEN COALESCE(SUM(em.cost), 0) > e.purchase_price * 0.5 THEN 'Consider Replacement'
-        WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, e.purchase_date)) > 5 THEN 'Aging Equipment'
-        ELSE 'Good Condition'
-    END AS recommendation
-FROM equipment e
-LEFT JOIN equipment_maintenance em ON e.equipment_id = em.equipment_id
-WHERE e.status != 'retired'
-GROUP BY e.equipment_id, e.equipment_name, e.category, e.brand, e.purchase_date, e.purchase_price
-ORDER BY total_cost_of_ownership DESC;
+-- H2. Monthly revenue report — March 2026
+CALL generate_monthly_revenue_report(2026, 3);
 
--- Query 20: Comprehensive member health scorecard
--- Demonstrates: CTEs, Complex scoring logic, Multiple aggregations
-WITH member_metrics AS (
-    SELECT 
-        m.member_id,
-        m.first_name || ' ' || m.last_name AS member_name,
-        -- Attendance metrics
-        COUNT(DISTINCT a.attendance_id) AS visits_30_days,
-        CASE 
-            WHEN COUNT(DISTINCT a.attendance_id) >= 20 THEN 100
-            WHEN COUNT(DISTINCT a.attendance_id) >= 15 THEN 80
-            WHEN COUNT(DISTINCT a.attendance_id) >= 10 THEN 60
-            WHEN COUNT(DISTINCT a.attendance_id) >= 5 THEN 40
-            ELSE 20
-        END AS attendance_score,
-        -- Goal metrics
-        COUNT(mfg.goal_id) AS total_goals,
-        COUNT(CASE WHEN mfg.status = 'achieved' THEN 1 END) AS achieved_goals,
-        CASE 
-            WHEN COUNT(CASE WHEN mfg.status = 'achieved' THEN 1 END) > 0 
-            THEN ROUND(COUNT(CASE WHEN mfg.status = 'achieved' THEN 1 END) * 100.0 / COUNT(mfg.goal_id), 2)
-            ELSE 0
-        END AS goal_achievement_rate,
-        -- Consistency
-        CURRENT_DATE - MAX(a.date) AS days_since_last_visit
-    FROM members m
-    LEFT JOIN attendance a ON m.member_id = a.member_id 
-        AND a.date >= CURRENT_DATE - INTERVAL '30 days'
-    LEFT JOIN member_fitness_goals mfg ON m.member_id = mfg.member_id
-    WHERE m.status = 'active'
-    GROUP BY m.member_id, m.first_name, m.last_name
-)
-SELECT 
-    member_name,
-    visits_30_days,
-    attendance_score,
-    total_goals,
-    achieved_goals,
-    goal_achievement_rate,
-    days_since_last_visit,
-    ROUND((attendance_score + COALESCE(goal_achievement_rate, 50)) / 2, 2) AS overall_health_score,
-    CASE 
-        WHEN days_since_last_visit > 14 THEN 'AT RISK - No recent activity'
-        WHEN visits_30_days < 8 THEN 'NEEDS MOTIVATION - Low attendance'
-        WHEN total_goals = 0 THEN 'NEEDS GOALS - Set fitness targets'
-        WHEN visits_30_days >= 15 AND achieved_goals > 0 THEN 'EXCELLENT - Champion member'
-        ELSE 'GOOD - Engaged member'
-    END AS health_status
-FROM member_metrics
-ORDER BY overall_health_score DESC
-LIMIT 20;
+-- H3. Monthly revenue report — full year 2025 (run for any month)
+CALL generate_monthly_revenue_report(2025, 8);
+
+-- H4. Member check-in procedure
+DO $$
+DECLARE
+    v_success BOOLEAN;
+    v_message TEXT;
+BEGIN
+    CALL member_checkin(5, v_success, v_message);
+    RAISE NOTICE 'Check-in | Success: % | Message: %', v_success, v_message;
+END $$;
+
+-- H5. Member check-out procedure
+DO $$
+DECLARE
+    v_success BOOLEAN;
+    v_message TEXT;
+BEGIN
+    CALL member_checkout(5, v_success, v_message);
+    RAISE NOTICE 'Check-out | Success: % | Message: %', v_success, v_message;
+END $$;
+
+-- H6. Register a brand-new member with subscription (full transaction)
+DO $$
+DECLARE
+    v_new_id  INTEGER;
+    v_success BOOLEAN;
+    v_message TEXT;
+BEGIN
+    CALL register_new_member(
+        'Demo', 'Student',
+        'demo.student@test.com',
+        '9000000001',
+        2,          -- Standard Quarterly plan
+        v_new_id, v_success, v_message
+    );
+    RAISE NOTICE 'Register | Success: % | New ID: % | Message: %',
+        v_success, v_new_id, v_message;
+END $$;
+
+-- H7. Schedule equipment maintenance
+DO $$
+DECLARE
+    v_success BOOLEAN;
+    v_message TEXT;
+BEGIN
+    CALL schedule_equipment_maintenance(
+        9,                  -- Rowing Machine
+        'routine',
+        'Quarterly chain lubrication and frame inspection',
+        CURRENT_DATE + 7,
+        v_success, v_message
+    );
+    RAISE NOTICE 'Maintenance | Success: % | Message: %', v_success, v_message;
+END $$;
 
 
--- ============================================
--- DEMONSTRATION SCRIPT
--- ============================================
+-- ============================================================
+-- SECTION I: TRIGGERS DEMO
+-- ============================================================
 
+-- I1. Trigger 1 demo — BMI auto-calculated on INSERT
+--     (check: bmi column should be filled automatically)
+INSERT INTO member_body_metrics
+    (member_id, measurement_date, weight_kg, height_cm, body_fat_percentage)
+VALUES (10, CURRENT_DATE, 58.5, 162.0, 24.0);
+
+-- Verify BMI was auto-populated
+SELECT metric_id, member_id, measurement_date,
+       weight_kg, height_cm, bmi
+FROM   member_body_metrics
+WHERE  member_id = 10
+ORDER  BY measurement_date DESC
+LIMIT  1;
+-- Expected bmi ≈ 22.29
+
+-- I2. Trigger 2 demo — updated_at auto-refreshed on member UPDATE
+UPDATE members
+SET    phone = '9111111111'
+WHERE  member_id = 10;
+
+SELECT member_id, first_name, phone, updated_at
+FROM   members
+WHERE  member_id = 10;
+
+-- I3. Trigger 3 demo — subscription validation (should FAIL)
+--     Uncomment to demonstrate the constraint trigger firing
 /*
-SUGGESTED DEMO FLOW (15 minutes):
-
-1. WARM-UP (2 min) - Queries 1, 2, 3
-   - Show basic database functionality
-   - Display sample data
-
-2. JOINS & AGGREGATES (3 min) - Queries 4, 5, 6
-   - Demonstrate complex joins
-   - Show aggregate functions
-   - GROUP BY examples
-
-3. ADVANCED SQL (4 min) - Queries 7, 8, 9, 10
-   - Subqueries
-   - Window functions
-   - UNION operations
-   - CTEs
-
-4. UNIQUE FEATURES (4 min) - Queries 11, 12
-   - Run update_all_engagement_scores()
-   - Show churn prediction results
-   - Explain business value
-
-5. FUNCTIONS & PROCEDURES (2 min) - Queries 16, 17, 18
-   - Demonstrate custom functions
-   - Call stored procedures
-   - Show table-returning functions
-
-TIPS FOR EVALUATION:
-- Explain WHAT each query does before running
-- Point out complex features (window functions, CTEs)
-- Highlight business value of analytics
-- Be ready to modify queries on request
-- Know your engagement scoring algorithm
+INSERT INTO member_subscriptions
+    (member_id, plan_id, start_date, end_date, amount_paid)
+VALUES (1, 1, CURRENT_DATE, CURRENT_DATE - INTERVAL '1 month', 999.00);
+-- Expected: ERROR — end_date must be after start_date
 */
+
+-- I4. Trigger 4 demo — attendance checkout validation (should FAIL)
+/*
+INSERT INTO attendance (member_id, check_in_time, check_out_time, date)
+VALUES (1, '2026-03-29 08:00:00', '2026-03-29 07:00:00', '2026-03-29');
+-- Expected: ERROR — check-out must be after check-in
+*/
+
+-- I5. Trigger 5 demo — status change logging
+UPDATE members
+SET    status = 'inactive'
+WHERE  member_id = 10;
+-- Expected: NOTICE in server log: "Member 10 (Divya Rao) status changed: active → inactive"
+
+-- Restore for demo
+UPDATE members
+SET    status = 'active'
+WHERE  member_id = 10;
+
+-- I6. Trigger 6 demo — prevent equipment deletion with pending maintenance
+/*
+DELETE FROM equipment WHERE equipment_id = 1;
+-- Expected: ERROR — equipment has pending maintenance records
+*/
+
+
+-- ============================================================
+-- SECTION J: CURSOR PROCEDURE DEMO
+-- ============================================================
+
+-- J1. Generate full activity report using cursor (loops all active members)
+CALL generate_member_activity_report();
+
+-- J2. Cleanup old data utility (safe to demo — no data older than 24 months)
+CALL cleanup_old_data(24);
+
+
+-- ============================================================
+-- SECTION K: VIVA / EDGE-CASE QUERIES
+-- (Likely questions a teacher might ask)
+-- ============================================================
+
+-- K1. "Show me members who have NEVER visited the gym"
+SELECT m.member_id, m.first_name, m.last_name,
+       m.registration_date, m.status
+FROM   members m
+WHERE  NOT EXISTS (
+    SELECT 1 FROM attendance a
+    WHERE  a.member_id = m.member_id
+)
+ORDER  BY m.registration_date;
+
+-- K2. "Which plan generates the most revenue?"
+SELECT mp.plan_name,
+       SUM(ms.amount_paid)          AS total_revenue,
+       COUNT(ms.subscription_id)    AS total_subs
+FROM   membership_plans mp
+JOIN   member_subscriptions ms ON mp.plan_id = ms.plan_id
+WHERE  ms.payment_status = 'completed'
+GROUP  BY mp.plan_id, mp.plan_name
+ORDER  BY total_revenue DESC
+LIMIT  1;
+
+-- K3. "Find members who have achieved ALL their fitness goals"
+SELECT m.first_name, m.last_name,
+       COUNT(mfg.goal_id) AS total_goals
+FROM   members m
+JOIN   member_fitness_goals mfg ON m.member_id = mfg.member_id
+GROUP  BY m.member_id, m.first_name, m.last_name
+HAVING COUNT(mfg.goal_id) > 0
+   AND COUNT(mfg.goal_id) = COUNT(CASE WHEN mfg.status = 'achieved' THEN 1 END)
+ORDER  BY total_goals DESC;
+
+-- K4. "What is the peak hour for gym check-ins?"
+SELECT EXTRACT(HOUR FROM check_in_time)::INTEGER AS hour,
+       COUNT(*)                                  AS checkins,
+       REPEAT('█', COUNT(*)::INTEGER / 2)        AS bar_chart
+FROM   attendance
+GROUP  BY EXTRACT(HOUR FROM check_in_time)
+ORDER  BY hour;
+
+-- K5. "Show members whose BMI is in the 'Obese' range (BMI > 30)"
+SELECT m.first_name, m.last_name, m.gender,
+       mbm.weight_kg, mbm.height_cm, mbm.bmi,
+       mbm.measurement_date
+FROM   members m
+JOIN   member_body_metrics mbm ON m.member_id = mbm.member_id
+WHERE  mbm.bmi > 30
+  AND  mbm.measurement_date = (
+           SELECT MAX(measurement_date)
+           FROM   member_body_metrics
+           WHERE  member_id = m.member_id
+       )
+ORDER  BY mbm.bmi DESC;
+
+-- K6. "Which equipment has NEVER been maintained?"
+SELECT e.equipment_id, e.equipment_name,
+       e.category, e.purchase_date, e.status
+FROM   equipment e
+WHERE  NOT EXISTS (
+    SELECT 1 FROM equipment_maintenance em
+    WHERE  em.equipment_id = e.equipment_id
+)
+  AND  e.status != 'retired'
+ORDER  BY e.purchase_date;
+
+-- K7. "How many members registered each month? (trend analysis)"
+SELECT TO_CHAR(registration_date, 'YYYY-MM') AS month,
+       COUNT(*)                              AS new_members,
+       SUM(COUNT(*)) OVER (ORDER BY TO_CHAR(registration_date, 'YYYY-MM'))
+           AS cumulative_members
+FROM   members
+GROUP  BY TO_CHAR(registration_date, 'YYYY-MM')
+ORDER  BY month;
+
+-- K8. "Show the longest gym session (time spent inside) per member"
+SELECT m.first_name, m.last_name,
+       MAX(check_out_time - check_in_time) AS longest_session,
+       AVG(check_out_time - check_in_time) AS avg_session
+FROM   members m
+JOIN   attendance a ON m.member_id = a.member_id
+WHERE  a.check_out_time IS NOT NULL
+GROUP  BY m.member_id, m.first_name, m.last_name
+ORDER  BY longest_session DESC
+LIMIT  10;
+
+-- K9. "What is the retention rate? (members who renewed their subscription)"
+SELECT COUNT(DISTINCT member_id)                     AS members_with_multiple_subs,
+       (SELECT COUNT(*) FROM members WHERE status = 'active') AS total_active,
+       ROUND(
+           COUNT(DISTINCT member_id) * 100.0 /
+           NULLIF((SELECT COUNT(*) FROM members WHERE status = 'active'), 0),
+           1
+       )                                              AS retention_pct
+FROM (
+    SELECT member_id
+    FROM   member_subscriptions
+    GROUP  BY member_id
+    HAVING COUNT(*) > 1
+) renewed;
+
+-- K10. "Which members have a subscription expiring this month?"
+SELECT m.first_name, m.last_name, m.email, m.phone,
+       ms.end_date,
+       mp.plan_name
+FROM   members m
+JOIN   member_subscriptions ms ON m.member_id = ms.member_id
+JOIN   membership_plans     mp ON ms.plan_id  = mp.plan_id
+WHERE  DATE_TRUNC('month', ms.end_date) = DATE_TRUNC('month', CURRENT_DATE)
+  AND  ms.end_date = (
+           SELECT MAX(end_date) FROM member_subscriptions
+           WHERE  member_id = m.member_id
+       )
+ORDER  BY ms.end_date;
+
+-- K11. "Difference between 3NF and BCNF" (demonstrate with schema)
+--      Show that no transitive dependencies exist
+SELECT table_name, column_name, data_type
+FROM   information_schema.columns
+WHERE  table_schema = 'public'
+  AND  table_name IN ('members','member_subscriptions','membership_plans')
+ORDER  BY table_name, ordinal_position;
+
+-- K12. "Show all foreign key relationships in the database"
+SELECT
+    tc.table_name        AS child_table,
+    kcu.column_name      AS child_column,
+    ccu.table_name       AS parent_table,
+    ccu.column_name      AS parent_column,
+    rc.delete_rule       AS on_delete
+FROM information_schema.table_constraints       tc
+JOIN information_schema.key_column_usage        kcu ON tc.constraint_name  = kcu.constraint_name
+JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name  = ccu.constraint_name
+JOIN information_schema.referential_constraints rc  ON tc.constraint_name  = rc.constraint_name
+WHERE tc.constraint_type = 'FOREIGN KEY'
+  AND tc.table_schema    = 'public'
+ORDER BY child_table;
+
+-- K13. "Show all CHECK constraints in the schema"
+SELECT tc.table_name,
+       tc.constraint_name,
+       cc.check_clause
+FROM   information_schema.table_constraints      tc
+JOIN   information_schema.check_constraints      cc
+       ON tc.constraint_name = cc.constraint_name
+WHERE  tc.table_schema = 'public'
+  AND  tc.constraint_type = 'CHECK'
+ORDER  BY tc.table_name;
+
+-- K14. "What is the total value of all gym equipment?"
+SELECT COUNT(*)                                      AS total_units,
+       SUM(purchase_price)                           AS total_investment,
+       ROUND(AVG(purchase_price), 2)                 AS avg_unit_price,
+       MAX(purchase_price)                           AS most_expensive,
+       MIN(purchase_price)                           AS least_expensive
+FROM   equipment
+WHERE  status != 'retired';
+
+-- K15. "Members currently inside the gym right now (not checked out)"
+SELECT m.first_name, m.last_name,
+       a.check_in_time,
+       CURRENT_TIMESTAMP - a.check_in_time AS time_inside
+FROM   members m
+JOIN   attendance a ON m.member_id = a.member_id
+WHERE  a.check_out_time IS NULL
+  AND  a.date = CURRENT_DATE
+ORDER  BY a.check_in_time;
+
+-- ============================================================
+-- END OF DEMO QUERIES
+-- ============================================================
