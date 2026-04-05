@@ -8,7 +8,9 @@
 -- TABLE 1: MEMBERSHIP PLANS (inserted first — FK dependency)
 -- ============================================
 
-INSERT INTO membership_plans (plan_name, duration_months, price, description, facilities_included, is_active) VALUES
+INSERT INTO membership_plans
+    (plan_name, duration_months, price, description, facilities_included, is_active)
+VALUES
 ('Basic Monthly',        1,   999.00, 'Month-to-month access to gym floor',           'Gym floor, Locker room',                                      TRUE),
 ('Standard Quarterly',   3,  2699.00, 'Three-month plan with group classes',           'Gym floor, Group classes, Locker room',                       TRUE),
 ('Premium Half-Yearly',  6,  4999.00, 'Six-month plan with personal trainer session',  'Gym floor, Group classes, PT (2 sessions), Sauna, Locker',    TRUE),
@@ -17,15 +19,18 @@ INSERT INTO membership_plans (plan_name, duration_months, price, description, fa
 ('Couple Quarterly',     3,  4799.00, 'Joint three-month plan for two members',         'Gym floor, Group classes, Locker room',                       TRUE),
 ('Senior Monthly',       1,   799.00, 'Discounted plan for members 60+',               'Gym floor, Pool access, Locker room',                         TRUE),
 ('Corporate Annual',    12,  7499.00, 'Bulk corporate membership — annual',             'All facilities, Group classes, Locker room',                  TRUE),
-('Day Pass',             0,   199.00, 'Single day access',                              'Gym floor',                                                   FALSE),
-('Weekend Warrior',      1,   599.00, 'Weekend-only access plan',                       'Gym floor, Locker room',                                      TRUE);
-
+('Day Pass',             1,   199.00, 'Single day access',                              'Gym floor',                                                   FALSE),
+('Weekend Warrior',      1,   599.00, 'Weekend-only access plan',                       'Gym floor, Locker room',                                      TRUE)
+ON CONFLICT DO NOTHING;
 
 -- ============================================
 -- TABLE 2: MEMBERS (~90 members)
 -- ============================================
 
-INSERT INTO members (first_name, last_name, email, phone, date_of_birth, gender, address, emergency_contact, emergency_phone, registration_date, status) VALUES
+INSERT INTO members
+    (first_name, last_name, email, phone, date_of_birth, gender,
+     address, emergency_contact, emergency_phone, registration_date, status)
+VALUES
 ('Arjun',      'Sharma',      'arjun.sharma@email.com',       '9876543210', '1992-03-15', 'Male',   '12 MG Road, Amritsar',          'Priya Sharma',     '9876543211', '2023-01-10', 'active'),
 ('Priya',      'Verma',       'priya.verma@email.com',        '9812345678', '1995-07-22', 'Female', '45 Model Town, Ludhiana',       'Raj Verma',        '9812345679', '2023-01-15', 'active'),
 ('Rahul',      'Gupta',       'rahul.gupta@email.com',        '9823456789', '1988-11-30', 'Male',   '8 Civil Lines, Jalandhar',      'Sunita Gupta',     '9823456790', '2023-02-01', 'active'),
@@ -121,112 +126,114 @@ INSERT INTO members (first_name, last_name, email, phone, date_of_birth, gender,
 ('Farida',     'Sheikh',      'farida.sheikh@email.com',      '9883123456', '1993-09-21', 'Female', '32 Byculla, Mumbai',            'Imran Sheikh',     '9883123457', '2023-05-10', 'inactive'),
 ('Navin',      'Rastogi',     'navin.rastogi@email.com',      '9883234567', '1984-02-08', 'Male',   '16 Tagore Nagar, Lucknow',      'Asha Rastogi',     '9883234568', '2023-07-22', 'suspended'),
 ('Parveen',    'Dhaliwal',    'parveen.dhaliwal@email.com',   '9883345678', '1991-12-15', 'Male',   '9 Ranjit Avenue, Amritsar',     'Jaspreet Dhaliwal','9883345679', '2024-01-30', 'inactive'),
-('Lata',       'Bhagat',      'lata.bhagat@email.com',        '9883456789', '1990-07-02', 'Female', '61 Sector 35, Chandigarh',      'Anil Bhagat',      '9883456790', '2024-04-15', 'suspended');
-
+('Lata',       'Bhagat',      'lata.bhagat@email.com',        '9883456789', '1990-07-02', 'Female', '61 Sector 35, Chandigarh',      'Anil Bhagat',      '9883456790', '2024-04-15', 'suspended')
+ON CONFLICT (email) DO NOTHING;
 
 -- ============================================
 -- TABLE 3: MEMBER SUBSCRIPTIONS
 -- ============================================
 
-INSERT INTO member_subscriptions (member_id, plan_id, start_date, end_date, amount_paid, payment_method, payment_status, auto_renew) VALUES
--- Annual members
+INSERT INTO member_subscriptions
+    (member_id, plan_id, start_date, end_date, amount_paid,
+     payment_method, payment_status, auto_renew)
+VALUES
 (1,  4, '2025-01-10', '2026-01-10', 8999.00, 'upi',           'completed', TRUE),
 (2,  3, '2025-01-15', '2025-07-15', 4999.00, 'credit_card',   'completed', FALSE),
 (3,  4, '2025-02-01', '2026-02-01', 8999.00, 'bank_transfer', 'completed', TRUE),
 (4,  2, '2025-02-14', '2025-05-14', 2699.00, 'upi',           'completed', FALSE),
 (5,  4, '2025-02-20', '2026-02-20', 8999.00, 'credit_card',   'completed', TRUE),
-(6,  5, '2025-03-05', '2025-04-05', 699.00,  'upi',           'completed', FALSE),
+(6,  5, '2025-03-05', '2025-04-05',  699.00, 'upi',           'completed', FALSE),
 (7,  2, '2025-03-12', '2025-06-12', 2699.00, 'debit_card',    'completed', FALSE),
 (8,  3, '2025-03-18', '2025-09-18', 4999.00, 'upi',           'completed', TRUE),
 (9,  4, '2025-04-02', '2026-04-02', 8999.00, 'bank_transfer', 'completed', TRUE),
 (10, 2, '2025-04-10', '2025-07-10', 2699.00, 'credit_card',   'completed', FALSE),
 (11, 3, '2025-04-22', '2025-10-22', 4999.00, 'upi',           'completed', FALSE),
-(12, 1, '2025-05-03', '2025-06-03', 999.00,  'cash',          'completed', FALSE),
+(12, 1, '2025-05-03', '2025-06-03',  999.00, 'cash',          'completed', FALSE),
 (13, 4, '2025-05-15', '2026-05-15', 8999.00, 'credit_card',   'completed', TRUE),
 (14, 2, '2025-05-28', '2025-08-28', 2699.00, 'upi',           'completed', FALSE),
 (15, 3, '2025-06-05', '2025-12-05', 4999.00, 'bank_transfer', 'completed', TRUE),
-(16, 5, '2025-06-18', '2025-07-18', 699.00,  'upi',           'completed', FALSE),
+(16, 5, '2025-06-18', '2025-07-18',  699.00, 'upi',           'completed', FALSE),
 (17, 4, '2025-07-01', '2026-07-01', 8999.00, 'credit_card',   'completed', TRUE),
 (18, 2, '2025-07-14', '2025-10-14', 2699.00, 'upi',           'completed', FALSE),
 (19, 4, '2025-07-27', '2026-07-27', 8999.00, 'debit_card',    'completed', TRUE),
 (20, 3, '2025-08-08', '2026-02-08', 4999.00, 'upi',           'completed', FALSE),
-(21, 1, '2025-08-20', '2025-09-20', 999.00,  'cash',          'completed', FALSE),
-(22, 5, '2025-09-01', '2025-10-01', 699.00,  'upi',           'completed', FALSE),
+(21, 1, '2025-08-20', '2025-09-20',  999.00, 'cash',          'completed', FALSE),
+(22, 5, '2025-09-01', '2025-10-01',  699.00, 'upi',           'completed', FALSE),
 (23, 4, '2025-09-12', '2026-09-12', 8999.00, 'bank_transfer', 'completed', TRUE),
 (24, 2, '2025-09-25', '2025-12-25', 2699.00, 'credit_card',   'completed', FALSE),
 (25, 3, '2025-10-05', '2026-04-05', 4999.00, 'upi',           'completed', TRUE),
-(26, 1, '2025-10-18', '2025-11-18', 999.00,  'cash',          'completed', FALSE),
+(26, 1, '2025-10-18', '2025-11-18',  999.00, 'cash',          'completed', FALSE),
 (27, 4, '2025-11-02', '2026-11-02', 8999.00, 'credit_card',   'completed', TRUE),
 (28, 2, '2025-11-15', '2026-02-15', 2699.00, 'upi',           'completed', FALSE),
 (29, 3, '2025-11-28', '2026-05-28', 4999.00, 'bank_transfer', 'completed', TRUE),
-(30, 5, '2025-12-10', '2026-01-10', 699.00,  'upi',           'completed', FALSE),
+(30, 5, '2025-12-10', '2026-01-10',  699.00, 'upi',           'completed', FALSE),
 (31, 4, '2025-12-22', '2026-12-22', 8999.00, 'credit_card',   'completed', TRUE),
-(32, 5, '2026-01-08', '2026-02-08', 699.00,  'upi',           'completed', FALSE),
+(32, 5, '2026-01-08', '2026-02-08',  699.00, 'upi',           'completed', FALSE),
 (33, 2, '2026-01-20', '2026-04-20', 2699.00, 'debit_card',    'completed', FALSE),
 (34, 3, '2026-02-03', '2026-08-03', 4999.00, 'upi',           'completed', TRUE),
-(35, 1, '2026-02-15', '2026-03-15', 999.00,  'cash',          'completed', FALSE),
+(35, 1, '2026-02-15', '2026-03-15',  999.00, 'cash',          'completed', FALSE),
 (36, 4, '2026-02-28', '2027-02-28', 8999.00, 'credit_card',   'completed', TRUE),
 (37, 2, '2026-03-10', '2026-06-10', 2699.00, 'upi',           'completed', FALSE),
 (38, 3, '2026-03-22', '2026-09-22', 4999.00, 'bank_transfer', 'completed', FALSE),
-(39, 1, '2026-03-01', '2026-04-01', 999.00,  'upi',           'completed', FALSE),
+(39, 1, '2026-03-01', '2026-04-01',  999.00, 'upi',           'completed', FALSE),
 (40, 2, '2026-03-05', '2026-06-05', 2699.00, 'credit_card',   'completed', FALSE),
 (41, 4, '2025-09-07', '2026-09-07', 8999.00, 'bank_transfer', 'completed', TRUE),
 (42, 3, '2025-09-20', '2026-03-20', 4999.00, 'upi',           'completed', FALSE),
 (43, 2, '2025-10-03', '2026-01-03', 2699.00, 'credit_card',   'completed', FALSE),
 (44, 4, '2025-10-16', '2026-10-16', 8999.00, 'upi',           'completed', TRUE),
-(45, 1, '2025-10-29', '2025-11-29', 999.00,  'cash',          'completed', FALSE),
+(45, 1, '2025-10-29', '2025-11-29',  999.00, 'cash',          'completed', FALSE),
 (46, 2, '2025-11-11', '2026-02-11', 2699.00, 'debit_card',    'completed', FALSE),
 (47, 3, '2025-11-24', '2026-05-24', 4999.00, 'upi',           'completed', TRUE),
 (48, 4, '2025-12-07', '2026-12-07', 8999.00, 'credit_card',   'completed', TRUE),
 (49, 2, '2025-12-20', '2026-03-20', 2699.00, 'upi',           'completed', FALSE),
-(50, 5, '2026-01-05', '2026-02-05', 699.00,  'cash',          'completed', FALSE),
+(50, 5, '2026-01-05', '2026-02-05',  699.00, 'cash',          'completed', FALSE),
 (51, 4, '2026-01-18', '2027-01-18', 8999.00, 'bank_transfer', 'completed', TRUE),
 (52, 2, '2026-02-01', '2026-05-01', 2699.00, 'credit_card',   'completed', FALSE),
 (53, 3, '2026-02-14', '2026-08-14', 4999.00, 'upi',           'completed', TRUE),
-(54, 1, '2026-02-27', '2026-03-27', 999.00,  'cash',          'completed', FALSE),
+(54, 1, '2026-02-27', '2026-03-27',  999.00, 'cash',          'completed', FALSE),
 (55, 4, '2026-03-12', '2027-03-12', 8999.00, 'credit_card',   'completed', TRUE),
-(56, 5, '2026-03-25', '2026-04-25', 699.00,  'upi',           'completed', FALSE),
+(56, 5, '2026-03-25', '2026-04-25',  699.00, 'upi',           'completed', FALSE),
 (57, 2, '2025-12-01', '2026-03-01', 2699.00, 'debit_card',    'completed', FALSE),
 (58, 4, '2025-12-14', '2026-12-14', 8999.00, 'upi',           'completed', TRUE),
 (59, 3, '2025-12-27', '2026-06-27', 4999.00, 'bank_transfer', 'completed', FALSE),
-(60, 1, '2026-01-08', '2026-02-08', 999.00,  'cash',          'completed', FALSE),
+(60, 1, '2026-01-08', '2026-02-08',  999.00, 'cash',          'completed', FALSE),
 (61, 4, '2026-01-21', '2027-01-21', 8999.00, 'credit_card',   'completed', TRUE),
 (62, 2, '2026-02-04', '2026-05-04', 2699.00, 'upi',           'completed', FALSE),
 (63, 3, '2026-02-17', '2026-08-17', 4999.00, 'bank_transfer', 'completed', TRUE),
-(64, 5, '2026-01-08', '2026-02-08', 699.00,  'upi',           'completed', FALSE),
+(64, 5, '2026-01-08', '2026-02-08',  699.00, 'upi',           'completed', FALSE),
 (65, 4, '2026-01-21', '2027-01-21', 8999.00, 'credit_card',   'completed', TRUE),
 (66, 2, '2026-02-04', '2026-05-04', 2699.00, 'upi',           'completed', FALSE),
-(67, 1, '2026-02-17', '2026-03-17', 999.00,  'cash',          'completed', FALSE),
+(67, 1, '2026-02-17', '2026-03-17',  999.00, 'cash',          'completed', FALSE),
 (68, 3, '2026-03-01', '2026-09-01', 4999.00, 'bank_transfer', 'completed', TRUE),
 (69, 4, '2026-03-14', '2027-03-14', 8999.00, 'credit_card',   'completed', TRUE),
 (70, 2, '2026-03-27', '2026-06-27', 2699.00, 'upi',           'completed', FALSE),
-(71, 7, '2026-01-08', '2026-02-08', 799.00,  'cash',          'completed', FALSE),
+(71, 7, '2026-01-08', '2026-02-08',  799.00, 'cash',          'completed', FALSE),
 (72, 4, '2026-01-21', '2027-01-21', 8999.00, 'credit_card',   'completed', TRUE),
 (73, 2, '2026-02-04', '2026-05-04', 2699.00, 'upi',           'completed', FALSE),
 (74, 3, '2026-02-17', '2026-08-17', 4999.00, 'bank_transfer', 'completed', FALSE),
-(75, 1, '2026-03-01', '2026-04-01', 999.00,  'cash',          'completed', FALSE),
+(75, 1, '2026-03-01', '2026-04-01',  999.00, 'cash',          'completed', FALSE),
 (76, 4, '2026-03-14', '2027-03-14', 8999.00, 'credit_card',   'completed', TRUE),
-(77, 5, '2026-03-27', '2026-04-27', 699.00,  'upi',           'completed', FALSE),
+(77, 5, '2026-03-27', '2026-04-27',  699.00, 'upi',           'completed', FALSE),
 (78, 2, '2026-01-08', '2026-04-08', 2699.00, 'debit_card',    'completed', FALSE),
 (79, 3, '2026-01-21', '2026-07-21', 4999.00, 'upi',           'completed', TRUE),
 (80, 4, '2026-02-04', '2027-02-04', 8999.00, 'bank_transfer', 'completed', TRUE),
-(81, 1, '2026-02-17', '2026-03-17', 999.00,  'cash',          'completed', FALSE),
+(81, 1, '2026-02-17', '2026-03-17',  999.00, 'cash',          'completed', FALSE),
 (82, 2, '2026-03-01', '2026-06-01', 2699.00, 'credit_card',   'completed', FALSE),
 (83, 4, '2026-03-14', '2027-03-14', 8999.00, 'upi',           'completed', TRUE),
 (84, 3, '2026-03-27', '2026-09-27', 4999.00, 'bank_transfer', 'completed', FALSE),
-(85, 1, '2026-03-01', '2026-04-01', 999.00,  'cash',          'completed', FALSE),
+(85, 1, '2026-03-01', '2026-04-01',  999.00, 'cash',          'completed', FALSE),
 (86, 2, '2026-03-14', '2026-06-14', 2699.00, 'upi',           'completed', FALSE),
-(87, 5, '2026-03-27', '2026-04-27', 699.00,  'upi',           'completed', FALSE),
+(87, 5, '2026-03-27', '2026-04-27',  699.00, 'upi',           'completed', FALSE),
 (88, 2, '2026-01-08', '2026-04-08', 2699.00, 'credit_card',   'completed', FALSE),
 (89, 4, '2026-01-21', '2027-01-21', 8999.00, 'bank_transfer', 'completed', TRUE),
 (90, 3, '2026-02-04', '2026-08-04', 4999.00, 'upi',           'completed', FALSE),
--- Inactive/suspended members' old subscriptions
-(91, 1, '2023-03-01', '2023-04-01', 999.00,  'cash',          'completed', FALSE),
+-- Inactive / suspended members' old subscriptions
+(91, 1, '2023-03-01', '2023-04-01',  999.00, 'cash',          'completed', FALSE),
 (92, 2, '2023-05-10', '2023-08-10', 2699.00, 'upi',           'completed', FALSE),
-(93, 1, '2023-07-22', '2023-08-22', 999.00,  'cash',          'completed', FALSE),
+(93, 1, '2023-07-22', '2023-08-22',  999.00, 'cash',          'completed', FALSE),
 (94, 2, '2024-01-30', '2024-04-30', 2699.00, 'debit_card',    'completed', FALSE),
-(95, 3, '2024-04-15', '2024-10-15', 4999.00, 'upi',           'refunded',  FALSE);
-
+(95, 3, '2024-04-15', '2024-10-15', 4999.00, 'upi',           'refunded',  FALSE)
+ON CONFLICT DO NOTHING;
 
 -- ============================================
 -- TABLE 4: ATTENDANCE
@@ -563,6 +570,14 @@ INSERT INTO member_body_metrics (member_id, measurement_date, weight_kg, height_
 -- Member 89 - Rajeev Khurana
 (89, '2026-01-21', 85.00, 174.00, 28.00, 57.00, 28.08, 102.00, 92.00, 100.00, 38.00, 'Baseline — weight loss plan.'),
 (89, '2026-03-21', 83.00, 174.00, 26.50, 58.00, 27.42, 100.00, 89.00, 98.00, 38.50, '2-month check — 2kg lost.');
+
+
+--verifying the number of rows
+SELECT 'membership_plans'      AS tbl, COUNT(*) AS rows FROM membership_plans
+UNION ALL
+SELECT 'members',                       COUNT(*)         FROM members
+UNION ALL
+SELECT 'member_subscriptions',          COUNT(*)         FROM member_subscriptions;
 
 
 -- ============================================
