@@ -13,8 +13,6 @@ WHERE  routine_schema = 'public'
 ORDER  BY routine_name;
 
 
-
-
 SELECT trigger_name,
        event_object_table AS table_name,
        action_timing,
@@ -22,3 +20,29 @@ SELECT trigger_name,
 FROM   information_schema.triggers
 WHERE  trigger_schema = 'public'
 ORDER  BY event_object_table;
+
+
+Testing
+-- Test BMI calculation
+SELECT calculate_bmi(70, 170) AS bmi;
+-- Expected: 24.22
+
+-- Test days until expiry
+SELECT get_days_until_expiry(1) AS days;
+-- Expected: positive number (days remaining)
+
+-- Test attendance score
+SELECT calculate_attendance_score(1, 30) AS score;
+-- Expected: 0–100
+
+-- Test goal progress score
+SELECT calculate_goal_progress_score(1) AS score;
+-- Expected: 0–100
+
+-- Test equipment status
+SELECT get_equipment_status(1) AS status;
+-- Expected: Overdue / Due Soon / Upcoming / Scheduled
+
+-- Test member status
+SELECT * FROM get_member_status(1);
+-- Expected: member_name, subscription_status, days_remaining, total_visits_30d
