@@ -70,7 +70,6 @@ JOIN   membership_plans     mp ON ms.plan_id  = mp.plan_id
 WHERE  ms.auto_renew = TRUE
 ORDER  BY ms.end_date;
 
-
 -- ============================================================
 -- SECTION B: AGGREGATE FUNCTIONS & GROUP BY
 -- ============================================================
@@ -154,7 +153,6 @@ WHERE  mbm.measurement_date = (
        )
 GROUP  BY m.gender;
 
-
 -- ============================================================
 -- SECTION C: JOINS
 -- ============================================================
@@ -233,7 +231,6 @@ WHERE  m.status = 'active'
 GROUP  BY m.member_id, m.first_name, m.last_name,
           mp.plan_name, ms.end_date
 ORDER  BY total_visits DESC;
-
 
 -- ============================================================
 -- SECTION D: SUBQUERIES & CTEs
@@ -333,7 +330,6 @@ JOIN   LATERAL (
 WHERE  latest.weight_kg > (SELECT AVG(weight_kg) FROM member_body_metrics)
 ORDER  BY latest.weight_kg DESC;
 
-
 -- ============================================================
 -- SECTION E: WINDOW FUNCTIONS
 -- ============================================================
@@ -377,11 +373,13 @@ ORDER  BY mbm.member_id, mbm.measurement_date;
 SELECT m.first_name, m.last_name,
        ms.amount_paid,
        mp.plan_name,
-       ROUND(PERCENT_RANK() OVER (ORDER BY ms.amount_paid) * 100, 1) AS percentile
+       ROUND(CAST(PERCENT_RANK() OVER (ORDER BY ms.amount_paid) * 100 AS NUMERIC), 1) AS percentile
 FROM   members m
 JOIN   member_subscriptions ms ON m.member_id = ms.member_id
 JOIN   membership_plans     mp ON ms.plan_id  = mp.plan_id
 ORDER  BY ms.amount_paid DESC;
+
+
 
 -- E5. Row number for each member's attendance entries (ROW_NUMBER)
 SELECT m.first_name, m.last_name,
@@ -409,6 +407,7 @@ ORDER  BY m.gender, diff_from_avg DESC;
 -- ============================================================
 -- SECTION F: VIEWS DEMO
 -- ============================================================
+
 
 -- F1. Query the active_members_view — see all active members with plan info
 SELECT * FROM active_members_view
@@ -445,28 +444,29 @@ ORDER  BY
 -- F5. Query member_progress_view — members who lost weight
 SELECT first_name, last_name,
        measurement_date, weight_kg,
-       previous_weight, weight_change_kg,
+       previous_weight, weight_change,
        bmi, body_fat_percentage
 FROM   member_progress_view
-WHERE  weight_change_kg < 0
-ORDER  BY weight_change_kg ASC;
+WHERE  weight_change < 0
+ORDER  BY weight_change ASC;
 
 -- F6. Best performers — highest weight loss from progress view
 SELECT first_name, last_name,
-       MIN(weight_change_kg)   AS max_loss_in_one_period,
-       SUM(weight_change_kg)   AS net_weight_change,
+       MIN(weight_change)   AS max_loss_in_one_period,
+       SUM(weight_change)   AS net_weight_change,
        total_goals,
        achieved_goals
 FROM   member_progress_view
 GROUP  BY member_id, first_name, last_name,
           total_goals, achieved_goals
-HAVING MIN(weight_change_kg) IS NOT NULL
+HAVING MIN(weight_change) IS NOT NULL
 ORDER  BY net_weight_change ASC;
 
 
 -- ============================================================
 -- SECTION G: FUNCTIONS DEMO
 -- ============================================================
+
 
 -- G1. Calculate BMI for custom values
 SELECT calculate_bmi(70, 175)  AS bmi_70kg_175cm,
@@ -514,15 +514,34 @@ SELECT * FROM get_member_status(17);
 -- SECTION H: STORED PROCEDURES DEMO
 -- ============================================================
 
+
 -- H1. Process expired subscriptions
 --     (marks members with no active subscription as inactive)
+-- Step 1: Show before state
+SELECT status, COUNT(*) FROM members GROUP BY status;
+
+-- Step 2: Run the procedure
+CALL process_expired_subscriptions();
+
+-- Step 3: Show after state (some members now inactive)
+SELECT status, COUNT(*) FROM members GROUP BY status;
+
+-- Step 4: Restore for rest of demo
+UPDATE members
+SET    status     = 'active',
+       updated_at = CURRENT_TIMESTAMP
+WHERE  status = 'inactive'
+  AND  member_id NOT IN (91, 92, 93, 94, 95);
+
+-- Step 5: Confirm restored
+SELECT status, COUNT(*) FROM members GROUP BY status;
 CALL process_expired_subscriptions();
 
 -- H2. Monthly revenue report — March 2026
 CALL generate_monthly_revenue_report(2026, 3);
 
 -- H3. Monthly revenue report — full year 2025 (run for any month)
-CALL generate_monthly_revenue_report(2025, 8);
+CALL generate_monthly_revenue_report(2025, 9);
 
 -- H4. Member check-in procedure
 DO $$
@@ -555,7 +574,7 @@ BEGIN
         'Demo', 'Student',
         'demo.student@test.com',
         '9000000001',
-        2,          -- Standard Quarterly plan
+        1,          -- Standard Quarterly plan
         v_new_id, v_success, v_message
     );
     RAISE NOTICE 'Register | Success: % | New ID: % | Message: %',
@@ -609,19 +628,19 @@ WHERE  member_id = 10;
 
 -- I3. Trigger 3 demo — subscription validation (should FAIL)
 --     Uncomment to demonstrate the constraint trigger firing
-/*
+
 INSERT INTO member_subscriptions
     (member_id, plan_id, start_date, end_date, amount_paid)
 VALUES (1, 1, CURRENT_DATE, CURRENT_DATE - INTERVAL '1 month', 999.00);
 -- Expected: ERROR — end_date must be after start_date
-*/
+
 
 -- I4. Trigger 4 demo — attendance checkout validation (should FAIL)
-/*
+
 INSERT INTO attendance (member_id, check_in_time, check_out_time, date)
 VALUES (1, '2026-03-29 08:00:00', '2026-03-29 07:00:00', '2026-03-29');
 -- Expected: ERROR — check-out must be after check-in
-*/
+
 
 -- I5. Trigger 5 demo — status change logging
 UPDATE members
@@ -641,6 +660,7 @@ DELETE FROM equipment WHERE equipment_id = 1;
 */
 
 
+
 -- ============================================================
 -- SECTION J: CURSOR PROCEDURE DEMO
 -- ============================================================
@@ -656,6 +676,7 @@ CALL cleanup_old_data(24);
 -- SECTION K: VIVA / EDGE-CASE QUERIES
 -- (Likely questions a teacher might ask)
 -- ============================================================
+
 
 -- K1. "Show me members who have NEVER visited the gym"
 SELECT m.member_id, m.first_name, m.last_name,
@@ -699,17 +720,22 @@ ORDER  BY hour;
 -- K5. "Show members whose BMI is in the 'Obese' range (BMI > 30)"
 SELECT m.first_name, m.last_name, m.gender,
        mbm.weight_kg, mbm.height_cm, mbm.bmi,
+       CASE
+           WHEN mbm.bmi < 18.5 THEN 'Underweight'
+           WHEN mbm.bmi < 25.0 THEN 'Normal'
+           WHEN mbm.bmi < 30.0 THEN 'Overweight'
+           ELSE 'Obese'
+       END AS bmi_category,
        mbm.measurement_date
 FROM   members m
 JOIN   member_body_metrics mbm ON m.member_id = mbm.member_id
-WHERE  mbm.bmi > 30
+WHERE  mbm.bmi >= 25
   AND  mbm.measurement_date = (
            SELECT MAX(measurement_date)
            FROM   member_body_metrics
            WHERE  member_id = m.member_id
        )
 ORDER  BY mbm.bmi DESC;
-
 -- K6. "Which equipment has NEVER been maintained?"
 SELECT e.equipment_id, e.equipment_name,
        e.category, e.purchase_date, e.status
